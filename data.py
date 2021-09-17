@@ -17,10 +17,9 @@ class GuildData():
             self.data = pickle.load(open(self.data_path, "rb"))
         else:
             self.data = {"prefix":"!", "matcher_dict":{}}
-            print(str(self.data))
             self._syncData()
     def _syncData(self):
-        self.data = pickle.dump(self.data, open(self.data_path, "wb"))
+        pickle.dump(self.data, open(self.data_path, "wb"))
     def getProperty(self, property_name):
         if not property_name in self.data:
             return False

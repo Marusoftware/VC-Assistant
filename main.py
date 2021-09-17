@@ -21,23 +21,26 @@ intents.typing=False
 intents.members=True
 #backend
 Data=_Data()
+#get_guild_id
+def _getGuildId(message):
+    if not message.guild is None:
+        return message.guild.id
+    elif not message.author.guild is None:
+        return message.author.guild
+    else:
+        return message.author.id
 #prefix_setter(May be deprecated in future)
-def prefix_setter(bot, msg):
-    if msg.guild is None:
+def prefix_setter(bot, message):
+    if message.guild is None:
         return "!"
     else:
-        dt=Data.getGuildData(msg.guild.id)
-        return dt.getProperty("prefix")
+        return Data.getGuildData(_getGuildId(message)).getProperty("prefix")
 #bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
 #event_on_connect
 @bot.event
 async def on_ready():
     logger.info("Login")
-@bot.event
-async def on_slash_command_error(ctx,ex):
-    print("error"+str(ex))
-
 """commands"""
 ## general
 @bot.group(name="va")
@@ -47,17 +50,26 @@ async def general(ctx):
 # change_prefix
 @general.command(name="chprefix", desecription="Changing Prefix")
 async def chprefix(ctx, prefix: str):
-    Data.getGuildData(ctx.guild.id).setProperty("prefix",prefix)
+    Data.getGuildData(_getGuildId(ctx)).setProperty(property_name="prefix",value=prefix)
     await ctx.send("Prefix was successfully changed.")
 @bot.slash_command(name="chprefix", description="Changing Prefix")
 async def chprefix(ctx, prefix: Option(str, "Prefix string", required=True)):
-    Data.getGuildData(ctx.guild.id).setProperty("prefix",prefix)
+    Data.getGuildData(_getGuildId(ctx)).setProperty(property_name="prefix",value=prefix)
     await ctx.respond("Prefix was successfully changed.")
-
+#feature
 @general.group(name="feature")
 async def feature(ctx):
     if ctx.invoked_subcommand is None:
-        await ctx.send('This command must have subcommands.\n (chprefix)')
+        await ctx.send('This command must have subcommands.\n (enable, disable)')
+
+@feature.command(name="enable")
+async def enable(ctx, feature: str):
+    if feature == "matcher":
+        Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",True)
+@feature.command(name="disable")
+async def disable(ctx, feature: str):
+    if feature == "matcher":
+        Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",False)
 
 ## ping
 @bot.command(name="ping", desecription="Ping! Pong!")
@@ -66,9 +78,10 @@ async def ping(ctx):
 @bot.slash_command(name="ping", description="Ping! Pong!")
 async def ping(ctx):
     await ctx.respond("Pong!", ephemeral=True)
+
 ## matcher
 async def matcher(message):
-    plist=Data.getGuildData(message.guild.id).getMatcherDict()
+    plist=Data.getGuildData(_getGuildId(message)).getMatcherDict()
     for pattern in plist:
         if plist[pattern][0] == "match":
             result=re.match(pattern, message.content)
@@ -82,9 +95,9 @@ async def matcher(message):
             await message.channel.send(plist[pattern][1])
 
 @bot.event
-async def on_message(message):
-    print(dir(message.author.guild))
-    if Data.getGuildData(message.author.guild.id).getProperty("enMatcher"):
+async def on_message(message: discord.Message):
+    if message.author.bot: return
+    if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enMatcher"):
         await matcher(message)
     await bot.process_commands(message)
 
