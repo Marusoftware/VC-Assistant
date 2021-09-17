@@ -16,7 +16,7 @@ class GuildData():
         if os.path.exists(self.data_path):
             self.data = pickle.load(open(self.data_path, "rb"))
         else:
-            self.data = {"prefix":"!", "matcher_dict":{}}
+            self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True}
             self._syncData()
     def _syncData(self):
         pickle.dump(self.data, open(self.data_path, "wb"))
@@ -29,7 +29,7 @@ class GuildData():
         self.data[property_name]=value
         self._syncData()
     def getMatcherDict(self):
-        return self.data["matcher_dict"] 
+        return self.data["matcher_dict"]
     def addMatcherDict(self, pattern, check_type, text):
         self.data["matcher_dict"][pattern]=(check_type, text)
     def delMatcherDict(self, pattern):
