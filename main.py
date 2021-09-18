@@ -1,12 +1,9 @@
-from discord.channel import VoiceChannel
 from discord.ext import commands
-from discord.ext.commands.core import check
 from discord.interactions import Interaction
 from discord.ui import Button, Select, View
-from discord.utils import _URL_REGEX
 from data import Data as _Data
 import logging, argparse, discord, random, string, os, re
-from discord import ButtonStyle, SelectOption, Option
+from discord import ButtonStyle, SelectOption, Option, SlashCommandOptionType
 from pytube import YouTube
 from apiclient.discovery import build
 
@@ -187,7 +184,7 @@ async def list(ctx):
 @bot.slash_command(name="matcher", desecription="Setting Matcher Feature.")
 async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["add","del","list"]), pattern:Option(str, "Pattern(regax)", required=False), check_type:Option(str, "Check Type",choices=["match","search","fullmatch"], required=False, default="search"), text:Option(str, "Text", required=False)):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
-        await ctx.send('Matcher is not enabled.')
+        await ctx.respond('Matcher is not enabled.', ephemeral=True)
         return
     if subcommand=="add":
         if pattern is None or check_type is None or text is None:
@@ -237,25 +234,25 @@ async def search(ctx, query):
         youtube_query = youtube.search().list(q=query, part='id,snippet', maxResults=5)
         youtube_res = youtube_query.execute()
         return youtube_res.get('items', [])
-async def play(url, channel):
+async def play_music(url, channel):
+    print(url)
     yt = YouTube(url=url)
     stream=yt.streams.filter(only_audio=True)[0]
     filepath=stream.download()
     channel.play(discord.FFmpegPCMAudio(filepath))
 class MusicSelction(Select):
-    def __init__(self, custom_id:str, urldict:dict, channel):
-        super().__init__(custom_id=custom_id, options=urldict.keys())
-        self.urldict=urldict
+    def __init__(self, custom_id:str, urllist:list, channel):
+        super().__init__(custom_id=custom_id, options=urllist)
+        self.urllist=urllist
     async def callback(self, interaction:Interaction):
-        await interaction.responce.edit_message(content=f'Prepareing playing "{self.values}".\n ')
-        await play(self.urldict[self.values], interaction.guild.voice_client)
-        await interaction.responce.edit_message(content=f'start playing "{self.values}".\n ')
-        #await interaction.response.send_message("これでよろしいですか?\n(複数の選択肢ウィジェットがある場合は、一つにつき1回この手続きが必要です。)\n"+",".join(self.values), view=view,ephemeral=True)
+        await interaction.message.edit(content=f'Prepareing playing "{self.values}".\n ')
+        await play_music(self.values[0], interaction.guild.voice_client)
+        await interaction.message.edit(content=f'start playing "{self.values}".\n ')
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel=None):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Matcher is not enabled.')
+        await ctx.send('Music is not enabled.')
         return
     if channel is None:
         if ctx.author is discord.Member:
@@ -264,50 +261,71 @@ async def join(ctx, channel=None):
             else:
                 if not await connect(ctx.author.voice.channel):
                     await ctx.send("Sorry... Can't connect to VC....")
-                    return
+                else:
+                    await ctx.send("Connected to VC")
     else:
         if not await connect(channel):
             await ctx.send("Sorry... Can't connect to VC....")
-            return
+        else:
+            await ctx.send("Connected to VC")
 @bot.slash_command(name="join", desecription="join to VC")
-async def join(ctx, channel:Option(discord.Channel, "VC", required=False)):
+async def join(ctx, channel:Option(SlashCommandOptionType.channel, "VC", required=False, default=None)):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Matcher is not enabled.')
+        await ctx.respond('Music is not enabled.', ephemeral=True)
         return
     if channel is None:
         if ctx.author is discord.Member:
             if ctx.author.voice is None:
-                await ctx.send("Please assign or enter to VC.")
+                await ctx.respond("Please assign or enter to VC.")
             else:
                 if not await connect(ctx.author.voice.channel):
-                    await ctx.send("Sorry... Can't connect to VC....")
-                    return
+                    await ctx.respond("Sorry... Can't connect to VC....")
+                else:
+                    await ctx.respond("Connected to VC")
     else:
         if not await connect(channel):
-            await ctx.send("Sorry... Can't connect to VC....")
-            return
+            await ctx.respond("Sorry... Can't connect to VC....")
+        else:
+            await ctx.respond("Connected to VC")
 #play
 @bot.command(name="play", aliases=["p"], desecription="Play in VC")
 async def play(ctx, query):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Matcher is not enabled.')
+        await ctx.send('Music is not enabled.')
         return
     if re.match(query,"http"):
+        msg = await ctx.send(content=f'Prepareing playing "{query}"...\n ')
+        await play_music(query, ctx.guild.voice_client)
+        await msg.edit(content=f'Start playing "{query}".\n ')
+    else:
         url=await search(ctx, query)
         view=View(timeout=None)
-        view.add_item(MusicSelction("test", urldict={item["snippet"]["title"]:f'https://www.youtube.com/watch?v={item["id"]["videoId"]}' for item in url if (item['id']['kind'] == 'youtube#video')}))
+        #urllist={item["snippet"]["title"]:f'https://www.youtube.com/watch?v={item["id"]["videoId"]}' for item in url if item['id']['kind'] == 'youtube#video'}
+        urllist=[]
+        for item in url:
+            if item['id']['kind'] == 'youtube#video':
+                urllist.append(SelectOption(label=item["snippet"]["title"],value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
+
+        view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
         await ctx.send("Select Music to Play.",view=view)
-    else:
-        pass
 
 @bot.slash_command(name="play", desecription="join to VC")
 async def play(ctx, query:Option(str, "Serch text or url")):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Matcher is not enabled.')
+        await ctx.respond('Music is not enabled.', ephemeral=True)
         return
     if re.match(query,"http"):
-        await search(ctx, query)
+        msg = await ctx.respond(content=f'Prepareing playing "{query}"...\n ')
+        await play_music(query, ctx.guild.voice_client)
+        await msg.edit(content=f'Start playing "{query}".\n ')
     else:
-        pass
+        url=await search(ctx, query)
+        view=View(timeout=None)
+        urllist=[]
+        for item in url:
+            if item['id']['kind'] == 'youtube#video':
+                urllist.append(SelectOption(label=item["snippet"]["title"],value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
+        view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
+        await ctx.respond("Select Music to Play.",view=view)
 #run
 bot.run(argv.token)
