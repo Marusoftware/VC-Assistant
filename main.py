@@ -64,7 +64,7 @@ async def on_message(message: discord.Message):
 @bot.group(name="va")
 async def general(ctx):
     if ctx.invoked_subcommand is None:
-        await ctx.send('This command must have subcommands.\n (chprefix)')
+        await ctx.send('This command must have subcommands.\n (chprefix, feature)')
 # change_prefix
 @general.command(name="chprefix", desecription="Changing Prefix")
 async def chprefix(ctx, prefix: str):
@@ -83,18 +83,18 @@ async def feature(ctx):
 async def enable(ctx, feature: str):
     if feature == "matcher":
         Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",True)
-        await ctx.respond("Matcher is now enabled!!")
+        await ctx.send("Matcher is now enabled!!")
 @feature.command(name="disable", desecription="Disable Feather")
 async def disable(ctx, feature: str):
     if feature == "matcher":
         Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",False)
-        await ctx.respond("Matcher is now disabled!!")
+        await ctx.send("Matcher is now disabled!!")
 @feature.command(name="apikey", desecription="Set API key using in Feather")
 async def apikey(ctx, kind:str, key:str):
     Data.getGuildData(_getGuildId(ctx)).setProperty("key"+kind,key)
-    await ctx.respond("Key was seted.")
+    await ctx.send("Key was seted.")
 @bot.slash_command(name="feature", desecription="Setting Feather")
-async def feature(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["enable","disable","list","apikey"]), value:Option(str, "Feather or Key Type", required=False), key:Option(str, "API-Key", required=False)):
+async def feature(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["enable","disable","list","apikey"]), value:Option(str, "Feather or Key Type", required=False), key:Option(str, "API-Key", required=False, default=None)):
     if subcommand=="enable":
         if value is None:
             await ctx.respond("This subcommand must have value option(feature name).", ephemeral=True)
@@ -118,8 +118,10 @@ async def feature(ctx, subcommand:Option(str, "Subcommand", required=True, choic
         else:
             await ctx.respond("Oh no...Can't find such as feature..", ephemeral=True)
     elif subcommand=="apikey":
+        if apikey is None:
+            await ctx.respond("Key was seted.", ephemeral=True)
         Data.getGuildData(_getGuildId(ctx)).setProperty("key"+value,key)
-        await ctx.respond("Key was seted.")
+        await ctx.respond("Key was seted.", ephemeral=True)
 
 ## ping
 @bot.command(name="ping", desecription="Ping! Pong!")
@@ -234,19 +236,23 @@ async def search(ctx, query):
         youtube_query = youtube.search().list(q=query, part='id,snippet', maxResults=5)
         youtube_res = youtube_query.execute()
         return youtube_res.get('items', [])
-async def play_music(url, channel):
-    print(url)
+def play_music(url, channel):
     yt = YouTube(url=url)
     stream=yt.streams.filter(only_audio=True)[0]
     filepath=stream.download()
-    channel.play(discord.FFmpegPCMAudio(filepath))
+    if channel is None:
+        return "channel_none"
+    if channel.is_playing():
+        channel
+    else:
+        channel.play(discord.FFmpegPCMAudio(filepath))
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel):
         super().__init__(custom_id=custom_id, options=urllist)
         self.urllist=urllist
     async def callback(self, interaction:Interaction):
         await interaction.message.edit(content=f'Prepareing playing "{self.values}".\n ')
-        await play_music(self.values[0], interaction.guild.voice_client)
+        play_music(self.values[0], interaction.guild.voice_client)
         await interaction.message.edit(content=f'start playing "{self.values}".\n ')
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
@@ -295,7 +301,7 @@ async def play(ctx, query):
         return
     if re.match(query,"http"):
         msg = await ctx.send(content=f'Prepareing playing "{query}"...\n ')
-        await play_music(query, ctx.guild.voice_client)
+        play_music(query, ctx.guild.voice_client)
         await msg.edit(content=f'Start playing "{query}".\n ')
     else:
         url=await search(ctx, query)
@@ -316,7 +322,7 @@ async def play(ctx, query:Option(str, "Serch text or url")):
         return
     if re.match(query,"http"):
         msg = await ctx.respond(content=f'Prepareing playing "{query}"...\n ')
-        await play_music(query, ctx.guild.voice_client)
+        play_music(query, ctx.guild.voice_client)
         await msg.edit(content=f'Start playing "{query}".\n ')
     else:
         url=await search(ctx, query)
