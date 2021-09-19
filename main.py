@@ -316,7 +316,7 @@ async def play(ctx, query):
         await ctx.send("Select Music to Play.",view=view)
 
 @bot.slash_command(name="play", desecription="join to VC")
-async def play(ctx, query:Option(str, "Serch text or url")):
+async def play(ctx, query:Option(str, "Serch text or url", required=True)):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.', ephemeral=True)
         return
@@ -333,5 +333,43 @@ async def play(ctx, query:Option(str, "Serch text or url")):
                 urllist.append(SelectOption(label=item["snippet"]["title"],value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
         view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
         await ctx.respond("Select Music to Play.",view=view)
+
+#stop
+@bot.command(name="stop", aliases=["s"], desecription="Stop Music")
+async def stop(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.send(content=f'Stop playing...')
+        ctx.guild.voice_client.stop()
+
+@bot.slash_command(name="stop", desecription="Stop Music")
+async def stop(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.respond(content=f'Stop playing...')
+        await ctx.guild.voice_client.disconnect()
+
+#disconnect
+@bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
+async def disconnect(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.send(content=f'Stop playing...')
+        await ctx.guild.voice_client.disconnect()
+
+@bot.slash_command(name="disconnect", desecription="Disconnect from VC")
+async def disconnect(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.respond(content=f'Stop playing...')
+        ctx.guild.voice_client.stop()
 #run
 bot.run(argv.token)
