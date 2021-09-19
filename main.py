@@ -252,9 +252,10 @@ class MusicSelction(Select):
         super().__init__(custom_id=custom_id, options=urllist)
         self.urllist=urllist
     async def callback(self, interaction:Interaction):
-        await interaction.message.edit(content=f'Prepareing playing "{self.values}".\n ')
+        await interaction.message.edit(content=f'Prepareing playing "{self.values}"...', view=None)
         play_music(self.values[0], interaction.guild.voice_client)
-        await interaction.message.edit(content=f'start playing "{self.values}".\n ')
+        await interaction.message.edit(content=f'Start playing "{self.values}"!!')
+        interaction.response.send_message("Playing was started!!", ephemeral=True)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel=None):
