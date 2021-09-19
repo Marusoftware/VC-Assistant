@@ -227,6 +227,11 @@ async def connect(channel):
     except:
         return False
     else:
+        playlist=Data.getGuildData(_getGuildId(channel)).getPlaylist()
+        playlist.channel=channel.guild.voice_client
+        playlist.play_callback=play_callback
+        playlist.pause_callback=pause_callback
+        playlist.stop_callback=stop_callback
         return True
 async def search(ctx, query):
     key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
@@ -238,15 +243,20 @@ async def search(ctx, query):
         youtube_res = youtube_query.execute()
         return youtube_res.get('items', [])
 
+def pause_callback(self):
+    self.channel.pause()
+def stop_callback(self):
+    self.channel.stop()
+def play_callback(self, data):
+    self.channel.play(discord.FFmpegPCMAudio(data["path"]))
 def play_music(url, channel):
     yt = YouTube(url=url)
     stream=yt.streams.filter(only_audio=True)[0]
-    filepath=stream.download()
-    if channel is None:
-        return "channel_none"
-    if channel.is_playing():
-        channel.stop()#暫定
-    channel.play(discord.FFmpegPCMAudio(filepath))
+    path=stream.download()
+    Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path)
+    if not channel.is_playing():
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().play()
+
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel):
         super().__init__(custom_id=custom_id, options=urllist)
@@ -255,7 +265,6 @@ class MusicSelction(Select):
         await interaction.message.edit(content=f'Prepareing playing "{self.values[0]}"...', view=None)
         play_music(self.values[0], interaction.guild.voice_client)
         await interaction.message.edit(content=f'Start playing "{self.values[0]}"!!')
-        interaction.response.send_message("Playing was started!!", ephemeral=True)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel=None):
@@ -315,7 +324,10 @@ async def play(ctx, query):
         urllist=[]
         for item in url:
             if item['id']['kind'] == 'youtube#video':
-                urllist.append(SelectOption(label=item["snippet"]["title"],value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
+                title=item["snippet"]["title"]
+                if len(title)>20:
+                    title=title[0:40]
+                urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
 
         view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
         await ctx.send("Select Music to Play.",view=view)
@@ -334,7 +346,10 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True)):
         urllist=[]
         for item in url:
             if item['id']['kind'] == 'youtube#video':
-                urllist.append(SelectOption(label=item["snippet"]["title"],value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
+                title=item["snippet"]["title"]
+                if len(title)>20:
+                    title=title[0:40]
+                urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
         view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
         await ctx.respond("Select Music to Play.",view=view)
 #stop
@@ -345,7 +360,7 @@ async def stop(ctx):
         return
     if not ctx.guild.voice_client is None:
         await ctx.send(content=f'Stop playing...')
-        ctx.guild.voice_client.stop()
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().stop()
 @bot.slash_command(name="stop", desecription="Stop Music")
 async def stop(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
@@ -353,7 +368,7 @@ async def stop(ctx):
         return
     if not ctx.guild.voice_client is None:
         await ctx.respond(content=f'Stop playing...')
-        await ctx.guild.voice_client.disconnect()
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().stop()
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
 async def disconnect(ctx):
@@ -374,7 +389,7 @@ async def disconnect(ctx):
         if ctx.guild.voice_client.is_playing():
             ctx.guild.voice_client.stop()
         await ctx.respond(content=f'Disconnect from VC')
-        ctx.guild.voice_client.stop()
+        await ctx.guild.voice_client.disconnect()
 
 ##Run
 bot.run(argv.token)

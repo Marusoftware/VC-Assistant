@@ -1,4 +1,5 @@
 import os, pickle
+from playlist import Playlist
 class Data():
     def __init__(self):
         self.loaded_guilds={}
@@ -18,6 +19,7 @@ class GuildData():
         else:
             self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True}
             self._syncData()
+        self.playlist=Playlist()
     def _syncData(self):
         pickle.dump(self.data, open(self.data_path, "wb"))
     def getProperty(self, property_name):
@@ -34,3 +36,5 @@ class GuildData():
         self.data["matcher_dict"][pattern]=(check_type, text)
     def delMatcherDict(self, pattern):
         self.data["matcher_dict"].pop(pattern)
+    def getPlaylist(self):
+        return self.playlist
