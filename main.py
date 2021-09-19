@@ -1,5 +1,6 @@
 from discord.ext import commands
 from discord.interactions import Interaction
+from discord.member import Member
 from discord.ui import Button, Select, View
 from data import Data as _Data
 import logging, argparse, discord, random, string, os, re
@@ -261,7 +262,7 @@ async def join(ctx, channel=None):
         await ctx.send('Music is not enabled.')
         return
     if channel is None:
-        if ctx.author is discord.Member:
+        if type(ctx.author) == Member:
             if ctx.author.voice is None:
                 await ctx.send("Please assign or enter to VC.")
             else:
@@ -269,6 +270,8 @@ async def join(ctx, channel=None):
                     await ctx.send("Sorry... Can't connect to VC....")
                 else:
                     await ctx.send("Connected to VC")
+        else:
+            await ctx.send("Now no support for DM...Sorry...")
     else:
         if not await connect(channel):
             await ctx.send("Sorry... Can't connect to VC....")
@@ -280,7 +283,7 @@ async def join(ctx, channel:Option(SlashCommandOptionType.channel, "VC", require
         await ctx.respond('Music is not enabled.', ephemeral=True)
         return
     if channel is None:
-        if ctx.author is discord.Member:
+        if type(ctx.author) == Member:
             if ctx.author.voice is None:
                 await ctx.respond("Please assign or enter to VC.")
             else:
@@ -288,6 +291,8 @@ async def join(ctx, channel:Option(SlashCommandOptionType.channel, "VC", require
                     await ctx.respond("Sorry... Can't connect to VC....")
                 else:
                     await ctx.respond("Connected to VC")
+        else:
+            await ctx.respond("Now no support for DM...Sorry...")
     else:
         if not await connect(channel):
             await ctx.respond("Sorry... Can't connect to VC....")
@@ -360,7 +365,9 @@ async def disconnect(ctx):
         await ctx.send('Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.send(content=f'Stop playing...')
+        if ctx.guild.voice_client.is_playing():
+            ctx.guild.voice_client.stop()
+        await ctx.send(content=f'Disconnect from VC')
         await ctx.guild.voice_client.disconnect()
 
 @bot.slash_command(name="disconnect", desecription="Disconnect from VC")
@@ -369,7 +376,9 @@ async def disconnect(ctx):
         await ctx.respond('Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.respond(content=f'Stop playing...')
+        if ctx.guild.voice_client.is_playing():
+            ctx.guild.voice_client.stop()
+        await ctx.respond(content=f'Disconnect from VC')
         ctx.guild.voice_client.stop()
 #run
 bot.run(argv.token)
