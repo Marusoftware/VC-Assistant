@@ -51,12 +51,16 @@ class Playlist():
     def watcher(self):
         while 1:
             data=list(self.playlist.values())[0]
-            self.stopwatch.clear()
-            self.play_callback(self, data)
-            self.stopwatch.start()
-            if data["length"] <= self.stopwatch.getTime():
+            if self.state == "playing":
+                self.stopwatch.clear()
+                self.play_callback(self, data)
+                self.stopwatch.start()
+                self.state = "play"
+            elif data["length"]+1 <= self.stopwatch.getTime():
+                print("next")
                 self.playlist.pop(data["title"])
-                os.remove(data["path"])
+                threading.Thread(target=self._delfile, args=[data["path"]]).start()
+                if len(self.playlist)!=0: self.state="playing"
             elif self.state == "pausing":
                 self.pause_callback(self)
                 self.stopwatch.stop()
@@ -75,10 +79,14 @@ class Playlist():
         self.playlist[title]={"title":title, "length":length, "path":path}
     def play(self):
         self.thread=threading.Thread(target=self.watcher)
+        self.state="playing"
         self.thread.start()
 
     def stop(self):
         self.state="stoping"
+    def _delfile(self, path):
+        time.sleep(10)
+        os.remove(path)
 def play_callback(self, data):
     pass
 def pause_callback(self):
