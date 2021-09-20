@@ -496,7 +496,7 @@ async def showq(ctx, index:int):
         return
     if not ctx.guild.voice_client is None:
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
-        playlist.pop(list(playlist.keys()[index]))
+        playlist.pop(list(playlist.keys())[index])
         await ctx.send("Delete Music")
 @bot.slash_command(name="delete", desecription="Delete queued Music.")
 async def showq(ctx, index:Option(int, "Music Index", required=True)):
@@ -509,7 +509,7 @@ async def showq(ctx, index:Option(int, "Music Index", required=True)):
         return
     if not ctx.guild.voice_client is None:
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
-        playlist.pop(list(playlist.keys()[index]))
+        playlist.pop(list(playlist.keys())[index])
         await ctx.respond("Delete Music")
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
