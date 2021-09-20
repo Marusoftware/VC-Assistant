@@ -1,15 +1,13 @@
 from discord.ext import commands
 from discord.interactions import Interaction
 from discord.member import Member
-from discord.ui import Button, Select, View
-from data import Data as _Data
-import logging, argparse, discord, random, string, os, re
-from discord import ButtonStyle, SelectOption, Option, SlashCommandOptionType
+from discord.ui import Select, View
+from data import Data as _Data, playlist_list
+import logging, argparse, discord, random, string, re, datetime
+from discord import SelectOption, Option, SlashCommandOptionType
 from pytube import YouTube
 from apiclient.discovery import build
 
-def randomstr(n):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=n))
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
 argparser.add_argument("-log_level", action="store", type=int, dest="log_level", default=20 ,help="set Log level.(0-50)")
@@ -35,14 +33,28 @@ def _getGuildId(message):
         return message.author.guild
     else:
         return message.author.id
+#randomstr
+def randomstr(n):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=n))
 #prefix_setter(May be deprecated in future)
 def prefix_setter(bot, message):
     if message.guild is None:
         return "!"
     else:
         return Data.getGuildData(_getGuildId(message)).getProperty("prefix")
-def randomstr(n):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=n))
+#StoTime
+def StoTime(s, length=None):
+    t=datetime.timedelta(seconds=int(s))
+    if length is None:
+        return str(t)
+    else:
+        t2=datetime.timedelta(seconds=int(length))
+        text=""
+        for i in range(int((s/length)*10)):
+            text+="="
+        text+="○"
+        text=text.ljust(10, "=")
+        return f'{text} {str(t)}/{str(t2)}'
 
 ##bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
@@ -173,7 +185,7 @@ async def delete(ctx, pattern:str):
     Data.getGuildData(_getGuildId(ctx)).delMatcherDict(pattern)
     await ctx.send("Del word from dict.")
 @matcher.command("list", desecription="Del word from dict.")
-async def list(ctx):
+async def matcher_list(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
         await ctx.send('Matcher is not enabled.')
         return
@@ -264,7 +276,7 @@ class MusicSelction(Select):
     async def callback(self, interaction:Interaction):
         await interaction.message.edit(content=f'Prepareing playing "{self.values[0]}"...', view=None)
         play_music(self.values[0], interaction.guild.voice_client)
-        await interaction.message.edit(content=f'Start playing "{self.values[0]}"!!')
+        await interaction.message.edit(content=f'Start playing "{self.values[0]}"...!!')
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel=None):
@@ -310,11 +322,12 @@ async def join(ctx, channel:Option(SlashCommandOptionType.channel, "VC", require
             await ctx.respond("Connected to VC")
 #play
 @bot.command(name="play", aliases=["p"], desecription="Play in VC")
-async def play(ctx, query):
+async def play(ctx, *query):
+    query=" ".join(query)
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
-    if "https://www.youtube.com/watch?v=" in query:
+    if "youtube.com/watch?v=" in query:
         msg = await ctx.send(content=f'Prepareing playing "{query}"...\n ')
         play_music(query, ctx.guild.voice_client)
         await msg.edit(content=f'Start playing "{query}".\n ')
@@ -325,8 +338,8 @@ async def play(ctx, query):
         for item in url:
             if item['id']['kind'] == 'youtube#video':
                 title=item["snippet"]["title"]
-                if len(title)>20:
-                    title=title[0:40]
+                if len(title)>90:
+                    title=title[0:90]
                 urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
 
         view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
@@ -347,8 +360,8 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True)):
         for item in url:
             if item['id']['kind'] == 'youtube#video':
                 title=item["snippet"]["title"]
-                if len(title)>20:
-                    title=title[0:40]
+                if len(title)>90:
+                    title=title[0:90]
                 urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
         view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
         await ctx.respond("Select Music to Play.",view=view)
@@ -394,8 +407,8 @@ async def nowplaying(ctx):
         return
     if not ctx.guild.voice_client is None:
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
-        music=playlist.playlist[0]
-        await ctx.send(content=f'State:{music["title"]}\nLength:{str(music["length"])}')
+        music=list(playlist.playlist.keys())[0]
+        await ctx.send(content=f'State:{playlist.state}\nTitle:{playlist.playlist[music]["title"]}\nPos:{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}')
         
 @bot.slash_command(name="nowplaying", desecription="Show playing Music.")
 async def nowplaying(ctx):
@@ -403,12 +416,9 @@ async def nowplaying(ctx):
         await ctx.respond('Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.respond(content=f'Index Title Length')
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
-        n=0
-        for music in playlist:
-            n+=1
-            await ctx.respond(content=f'{n} {music["title"]} {str(music["length"])}')
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+        music=list(playlist.playlist.keys())[0]
+        await ctx.respond(content=f'State:{playlist.state}\nTitle:{playlist.playlist[music]["title"]}\nPos:{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}')
 #showq
 @bot.command(name="showq", aliases=["q"], desecription="Show queued Music.")
 async def showq(ctx):
@@ -416,25 +426,26 @@ async def showq(ctx):
         await ctx.send('Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.send(content=f'Index Title Length')
+        text=f'Index Title Length\n'
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         n=0
         for music in playlist:
             n+=1
-            await ctx.send(content=f'{n} {music["title"]} {str(music["length"])}')
-        
+            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}s\n'
+        await ctx.send(text)
 @bot.slash_command(name="showq", desecription="Show queued Music.")
 async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.respond(content=f'Index Title Length')
+        text=f'Index Title Length\n'
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         n=0
         for music in playlist:
             n+=1
-            await ctx.respond(content=f'{n} {music["title"]} {str(music["length"])}')
+            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}s\n'
+        await ctx.respond(text)
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
 async def disconnect(ctx):
@@ -459,3 +470,5 @@ async def disconnect(ctx):
 
 ##Run
 bot.run(argv.token)
+for i in playlist_list:
+    i.stop()

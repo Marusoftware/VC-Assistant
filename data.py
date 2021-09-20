@@ -1,5 +1,6 @@
 import os, pickle
 from playlist import Playlist
+playlist_list=[]
 class Data():
     def __init__(self):
         self.loaded_guilds={}
@@ -20,6 +21,7 @@ class GuildData():
             self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True}
             self._syncData()
         self.playlist=Playlist()
+        playlist_list.append(self.playlist)
     def _syncData(self):
         pickle.dump(self.data, open(self.data_path, "wb"))
     def getProperty(self, property_name):
