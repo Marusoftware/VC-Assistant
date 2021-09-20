@@ -48,9 +48,11 @@ class Playlist():
         self.play_callback=play_callback
         self.pause_callback=pause_callback
         self.stop_callback=stop_callback
+        self.resume_callback=resume_callback
     def watcher(self):
         while 1:
-            data=list(self.playlist.values())[0]
+            if len(self.playlist) != 0:
+                data=list(self.playlist.values())[0]
             if self.state == "playing":
                 self.stopwatch.clear()
                 self.play_callback(self, data)
@@ -60,19 +62,25 @@ class Playlist():
                 self.playlist.pop(data["title"])
                 threading.Thread(target=self._delfile, args=[data["path"]]).start()
                 if len(self.playlist)!=0: self.state="playing"
+                else: self.state="stopping"
             elif self.state == "skipping":
                 self.stop_callback(self)
                 self.playlist.pop(data["title"])
                 threading.Thread(target=self._delfile, args=[data["path"]]).start()
                 if len(self.playlist)!=0: self.state="playing"
+                else: self.state="stoping"
             elif self.state == "pausing":
                 self.pause_callback(self)
                 self.stopwatch.stop()
                 self.state="pause"
                 while self.state == "pause":
                     time.sleep(0.1)
-                self.play_callback(self, data)
-                self.stopwatch.start()
+                if self.state == "resuming":
+                    self.resume_callback(self)
+                    self.stopwatch.start()
+                    self.state="play"
+                else:
+                    pass
             elif self.state == "stoping":
                 self.stopwatch.stop()
                 self.stop_callback(self)
@@ -89,6 +97,10 @@ class Playlist():
         self.state="skipping"
     def stop(self):
         self.state="stoping"
+    def pause(self):
+        self.state="pausing"
+    def resume(self):
+        self.state="resuming"
     def _delfile(self, path):
         while os.path.exists(path):
             try:
@@ -97,9 +109,15 @@ class Playlist():
                 time.sleep(1)
             else:
                 break
+    def cleanup(self):
+        for i in self.playlist:
+            if os.path.exists(self.playlist[i]["path"]): os.remove(self.playlist[i]["path"])
+        self.playlist=OrderedDict()
 def play_callback(self, data):
     pass
 def pause_callback(self):
     pass
 def stop_callback(self):
+    pass
+def resume_callback(self):
     pass

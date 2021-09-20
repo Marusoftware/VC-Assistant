@@ -244,6 +244,7 @@ async def connect(channel):
         playlist.play_callback=play_callback
         playlist.pause_callback=pause_callback
         playlist.stop_callback=stop_callback
+        playlist.resume_callback=resume_callback
         return True
 async def search(ctx, query):
     key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
@@ -259,6 +260,8 @@ def pause_callback(self):
     self.channel.pause()
 def stop_callback(self):
     self.channel.stop()
+def resume_callback(self):
+    self.channel.resume()
 def play_callback(self, data):
     self.channel.play(discord.FFmpegPCMAudio(data["path"]))
 def play_music(url, channel):
@@ -382,6 +385,41 @@ async def skip(ctx):
     if not ctx.guild.voice_client is None:
         await ctx.respond(content=f'Skiping Music...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().skip()
+#pause
+@bot.command(name="pause", aliases=["pa"], desecription="Pause Music")
+async def pause(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.send(content=f'Pausing Music...')
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().pause()
+@bot.slash_command(name="pause", desecription="Pause Music")
+async def pause(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.respond(content=f'Pausing Music...')
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().pause()
+#pause
+@bot.command(name="resume", aliases=["re"], desecription="Resume Music")
+async def pause(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.send(content=f'Resuming Music...')
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().resume()
+@bot.slash_command(name="resume", desecription="Resume Music")
+async def pause(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.respond(content=f'Resuming Music...')
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().resume()
+
 #stop
 @bot.command(name="stop", aliases=["st"], desecription="Stop Music")
 async def stop(ctx):
@@ -471,4 +509,4 @@ async def disconnect(ctx):
 ##Run
 bot.run(argv.token)
 for i in playlist_list:
-    i.stop()
+    i.cleanup()
