@@ -484,6 +484,31 @@ async def showq(ctx):
             n+=1
             text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}s\n'
         await ctx.respond(text)
+#del
+@bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music.")
+async def showq(ctx, index:int):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if index == 1:
+        await ctx.send("If you want to delete Index 0, please use skip.")
+        return
+    if not ctx.guild.voice_client is None:
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        playlist.pop(list(playlist.keys()[index]))
+        await ctx.send("Delete Music")
+@bot.slash_command(name="delete", desecription="Delete queued Music.")
+async def showq(ctx, index:Option(int, "Music Index", required=True)):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if index == 1:
+        await ctx.respond("If you want to delete Index 0, please use skip.")
+        return
+    if not ctx.guild.voice_client is None:
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        playlist.pop(list(playlist.keys()[index]))
+        await ctx.respond("Delete Music")
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
 async def disconnect(ctx):
