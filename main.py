@@ -352,8 +352,25 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True)):
                 urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
         view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
         await ctx.respond("Select Music to Play.",view=view)
+#skip
+@bot.command(name="skip", aliases=["s"], desecription="Skip Music")
+async def skip(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.send(content=f'Skiping Music...')
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().skip()
+@bot.slash_command(name="skip", desecription="Skip Music")
+async def skip(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.respond(content=f'Skiping Music...')
+        Data.getGuildData(_getGuildId(ctx)).getPlaylist().skip()
 #stop
-@bot.command(name="stop", aliases=["s"], desecription="Stop Music")
+@bot.command(name="stop", aliases=["st"], desecription="Stop Music")
 async def stop(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
@@ -369,6 +386,55 @@ async def stop(ctx):
     if not ctx.guild.voice_client is None:
         await ctx.respond(content=f'Stop playing...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().stop()
+#nowplaying
+@bot.command(name="nowplaying", aliases=["np"], desecription="Show playing Music.")
+async def nowplaying(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+        music=playlist.playlist[0]
+        await ctx.send(content=f'State:{music["title"]}\nLength:{str(music["length"])}')
+        
+@bot.slash_command(name="nowplaying", desecription="Show playing Music.")
+async def nowplaying(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.respond(content=f'Index Title Length')
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        n=0
+        for music in playlist:
+            n+=1
+            await ctx.respond(content=f'{n} {music["title"]} {str(music["length"])}')
+#showq
+@bot.command(name="showq", aliases=["q"], desecription="Show queued Music.")
+async def showq(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.send(content=f'Index Title Length')
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        n=0
+        for music in playlist:
+            n+=1
+            await ctx.send(content=f'{n} {music["title"]} {str(music["length"])}')
+        
+@bot.slash_command(name="showq", desecription="Show queued Music.")
+async def showq(ctx):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    if not ctx.guild.voice_client is None:
+        await ctx.respond(content=f'Index Title Length')
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        n=0
+        for music in playlist:
+            n+=1
+            await ctx.respond(content=f'{n} {music["title"]} {str(music["length"])}')
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
 async def disconnect(ctx):
