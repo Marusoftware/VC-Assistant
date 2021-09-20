@@ -1,5 +1,4 @@
 from discord.ext import commands
-from discord.interactions import Interaction
 from discord.member import Member
 from discord.ui import Select, View
 from data import Data as _Data, playlist_list
@@ -276,7 +275,7 @@ class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel):
         super().__init__(custom_id=custom_id, options=urllist)
         self.urllist=urllist
-    async def callback(self, interaction:Interaction):
+    async def callback(self, interaction):
         await interaction.message.edit(content=f'Prepareing playing "{self.values[0]}"...', view=None)
         play_music(self.values[0], interaction.guild.voice_client)
         await interaction.message.edit(content=f'Start playing "{self.values[0]}"...!!')
