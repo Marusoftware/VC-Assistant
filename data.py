@@ -2,18 +2,19 @@ import os, pickle
 from playlist import Playlist
 playlist_list=[]
 class Data():
-    def __init__(self):
+    def __init__(self, data_dir=""):
+        self.data_dir=data_dir
         self.loaded_guilds={}
     def getGuildData(self, guild_id):
         if guild_id in self.loaded_guilds:
             return self.loaded_guilds[guild_id]
         else:
-            guild=GuildData(guild_id)
+            guild=GuildData(guild_id, self.data_dir)
             self.loaded_guilds[guild_id]=guild
             return guild
 class GuildData():
-    def __init__(self, guild_id):
-        self.data_dir=""#HERE:Guild DB Directory
+    def __init__(self, guild_id, data_dir):
+        self.data_dir=data_dir#HERE:Guild DB Directory
         self.data_path=os.path.join(self.data_dir,str(guild_id)+".guild")
         if os.path.exists(self.data_path):
             self.data = pickle.load(open(self.data_path, "rb"))

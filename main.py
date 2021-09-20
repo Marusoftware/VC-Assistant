@@ -11,6 +11,7 @@ from apiclient.discovery import build
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
 argparser.add_argument("-log_level", action="store", type=int, dest="log_level", default=20 ,help="set Log level.(0-50)")
 argparser.add_argument("-token", action="store", type=str, dest="token", required=True ,help="discord bot token")
+argparser.add_argument("-path", action="store", type=str, dest="path", required=True ,help="data path")
 ##argparser.add_argument("--daemon", dest="daemon", help="Start in daemon mode.", action="store_true")
 argv=argparser.parse_args()
 #setting logging
@@ -21,7 +22,7 @@ intents=discord.Intents.default()
 intents.typing=False
 intents.members=True
 #backend
-Data=_Data()
+Data=_Data(data_dir=argv.path)
 
 ##utils
 #get_guild_id
@@ -266,7 +267,7 @@ def play_callback(self, data):
 def play_music(url, channel):
     yt = YouTube(url=url)
     stream=yt.streams.filter(only_audio=True)[0]
-    path=stream.download()
+    path=stream.download(output_path=argv.path)
     Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path)
     if not channel.is_playing():
         Data.getGuildData(_getGuildId(channel)).getPlaylist().play()
