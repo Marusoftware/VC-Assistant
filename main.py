@@ -2,16 +2,16 @@ from discord.ext import commands
 from discord.member import Member
 from discord.ui import Select, View
 from data import Data as _Data, playlist_list
-import logging, argparse, discord, random, string, re, datetime
+import logging, argparse, discord, random, string, re, datetime, os, subprocess, urllib
 from discord import SelectOption, Option, SlashCommandOptionType
 from pytube import YouTube
 from apiclient.discovery import build
-
+from niconico_dl import NicoNicoVideo
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
 argparser.add_argument("-log_level", action="store", type=int, dest="log_level", default=20 ,help="set Log level.(0-50)")
 argparser.add_argument("-token", action="store", type=str, dest="token", required=True ,help="discord bot token")
-argparser.add_argument("-path", action="store", type=str, dest="path", required=True ,help="data path")
+argparser.add_argument("-path", action="store", type=str, dest="path", required=False ,help="data path", default="")
 ##argparser.add_argument("--daemon", dest="daemon", help="Start in daemon mode.", action="store_true")
 argv=argparser.parse_args()
 #setting logging
@@ -246,16 +246,46 @@ async def connect(channel):
         playlist.stop_callback=stop_callback
         playlist.resume_callback=resume_callback
         return True
-async def search(ctx, query):
-    key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
-    if not key:
-        return False
+async def search_music(ctx, query, service):
+    urllist=[]
+    if service == "search-nico":
+        query=query.replace("nico://","")
+        import json, urllib.request
+        params = {
+            'q':query,
+            'targets':'title,description,tags',
+            'fields':'contentId,title',
+            '_sort':'-viewCounter',
+            '_context':'vc-assistant-nico',
+            '_limit':5,
+        }
+        req = urllib.request.Request(f'https://api.search.nicovideo.jp/api/v2/snapshot/video/contents/search?{urllib.parse.urlencode(params)}')
+        res = json.loads(urllib.request.urlopen(req).read())
+        if res["meta"]["status"] != 200:
+            return False
+        else:
+            for item in res["data"]:
+                title=item["title"]
+                if len(title)>90:
+                    title=title[0:90]
+                urllist.append(SelectOption(label=title,value=f'https://www.nicovideo.jp/watch/{item["contentId"]}'))
+            return urllist
     else:
-        youtube = build('youtube', 'v3', developerKey=key)
-        youtube_query = youtube.search().list(q=query, part='id,snippet', maxResults=5)
-        youtube_res = youtube_query.execute()
-        return youtube_res.get('items', [])
-
+        key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
+        if not key:
+            return False 
+        else:
+            youtube = build('youtube', 'v3', developerKey=key)
+            youtube_query = youtube.search().list(q=query, part='id,snippet', maxResults=5)
+            youtube_res = youtube_query.execute()
+            url=youtube_res.get('items', [])
+        for item in url:
+            if item['id']['kind'] == 'youtube#video':
+                title=item["snippet"]["title"]
+                if len(title)>90:
+                    title=title[0:90]
+                urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
+        return urllist
 def pause_callback(self):
     self.channel.pause()
 def stop_callback(self):
@@ -264,22 +294,54 @@ def resume_callback(self):
     self.channel.resume()
 def play_callback(self, data):
     self.channel.play(discord.FFmpegPCMAudio(data["path"]))
-def play_music(url, channel):
-    yt = YouTube(url=url)
-    stream=yt.streams.filter(only_audio=True)[0]
-    path=stream.download(output_path=argv.path)
-    Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path)
-    if not channel.is_playing():
+def play_music(url, channel, service="detect"):
+    if service == "detect":
+        service=service_detection(url)
+    if service == "youtube":
+        yt = YouTube(url=url)
+        stream=yt.streams.filter(only_audio=True)[0]
+        path=stream.download(output_path=argv.path)
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path)
+    elif service == "nico":
+        with NicoNicoVideo(url=url) as nico:
+            data=nico.get_info()
+            path=os.path.join(argv.path, data["video"]["title"]+".mp4")
+            data = urllib.request.urlopen(nico.get_download_link(), timeout=500).read()
+            if os.path.exists(path): os.remove(path)
+            with open(path, mode="wb") as f:
+                f.write(data)
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(data["video"]["duration"], data["title"], path)
+    else:
+        return -1
+    if channel.is_playing():
+        return 1
+    else:
         Data.getGuildData(_getGuildId(channel)).getPlaylist().play()
-
+        return 0
+def service_detection(url):
+    if re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
+        return "youtube"
+    elif re.match("https?://(\S+\.)?nicovideo\.jp/watch/(\S)+",url):
+        return "nico"
+    elif re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
+        return "playlist-youtube"
+    elif re.match("nico://(\S)+", url):
+        return "search-nico"
+    else:
+        return "search-youtube"
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel):
         super().__init__(custom_id=custom_id, options=urllist)
         self.urllist=urllist
     async def callback(self, interaction):
         await interaction.message.edit(content=f'Prepareing playing "{self.values[0]}"...', view=None)
-        play_music(self.values[0], interaction.guild.voice_client)
-        await interaction.message.edit(content=f'Start playing "{self.values[0]}"...!!')
+        status=play_music(self.values[0], interaction.guild.voice_client)
+        if status == 0:
+            await interaction.message.edit(content=f'Start playing "{self.values[0]}".')
+        elif status == 1:
+            await interaction.message.edit(content=f'Added to queue "{self.values[0]}".')
+        else:
+            await interaction.message.edit(content=f'Oh...Some Error occured...')
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel=None):
@@ -330,44 +392,45 @@ async def play(ctx, *query):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
-    if "youtube.com/watch?v=" in query:
-        msg = await ctx.send(content=f'Prepareing playing "{query}"...\n ')
-        play_music(query, ctx.guild.voice_client)
-        await msg.edit(content=f'Start playing "{query}".\n ')
+    service=service_detection(query)
+    if service in ["youtube","nico"]:
+        msg = await ctx.send(content=f'Prepareing playing...', mention_author=True)
+        status=play_music(query, ctx.guild.voice_client, service)
+        if status == 0:
+            await msg.edit(content=f'Start playing.')
+        elif status == 1:
+            await msg.edit(content=f'Added to queue.')
+        else:
+            await msg.edit(content=f'Oh...Some Error occured...')
     else:
-        url=await search(ctx, query)
-        view=View(timeout=None)
-        urllist=[]
-        for item in url:
-            if item['id']['kind'] == 'youtube#video':
-                title=item["snippet"]["title"]
-                if len(title)>90:
-                    title=title[0:90]
-                urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
-
-        view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
-        await ctx.send("Select Music to Play.",view=view)
+        urllist=await search_music(ctx, query, service)
+        if urllist:
+            view=View(timeout=None)
+            view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
+            await ctx.send("Select Music to Play.",view=view)
+        else:
+            ctx.send("Error in Searching Music.")
 @bot.slash_command(name="play", desecription="join to VC")
 async def play(ctx, query:Option(str, "Serch text or url", required=True)):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.', ephemeral=True)
         return
-    if "youtube.com/watch?v=" in query:
-        msg = await ctx.respond(content=f'Prepareing playing "{query}"...\n ')
-        play_music(query, ctx.guild.voice_client)
-        await msg.edit(content=f'Start playing "{query}".\n ')
+    service=service_detection(query)
+    if service in ["youtube","nico"]:
+        msg = await ctx.respond(content=f'Prepareing playing...', mention_author=True)
+        status=play_music(query, ctx.guild.voice_client, service)
+        if status == 0:
+            await msg.edit(content=f'Start playing.')
+        elif status == 1:
+            await msg.edit(content=f'Added to queue.')
+        else:
+            await msg.edit(content=f'Oh...Some Error occured...')
     else:
-        url=await search(ctx, query)
-        view=View(timeout=None)
-        urllist=[]
-        for item in url:
-            if item['id']['kind'] == 'youtube#video':
-                title=item["snippet"]["title"]
-                if len(title)>90:
-                    title=title[0:90]
-                urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
-        view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
-        await ctx.respond("Select Music to Play.",view=view)
+        urllist=await search_music(ctx, query, service)
+        if urllist:
+            view=View(timeout=None)
+            view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
+            await ctx.respond("Select Music to Play.",view=view)
 #skip
 @bot.command(name="skip", aliases=["s"], desecription="Skip Music")
 async def skip(ctx):
