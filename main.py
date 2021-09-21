@@ -288,12 +288,14 @@ async def search_music(ctx, query, service):
         return urllist
 def pause_callback(self):
     self.channel.pause()
-def stop_callback(self):
+def stop_callback(self, data):
+    if not data["nico"] is None:
+        data["nico"].close()
     self.channel.stop()
 def resume_callback(self):
     self.channel.resume()
 def play_callback(self, data):
-    self.channel.play(discord.FFmpegPCMAudio(data["path"]))
+    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn"))
 def play_music(url, channel, service="detect"):
     if service == "detect":
         service=service_detection(url)
@@ -303,14 +305,10 @@ def play_music(url, channel, service="detect"):
         path=stream.download(output_path=argv.path)
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path)
     elif service == "nico":
-        with NicoNicoVideo(url=url) as nico:
-            data=nico.get_info()
-            path=os.path.join(argv.path, data["video"]["title"]+".mp4")
-            data = urllib.request.urlopen(nico.get_download_link(), timeout=500).read()
-            if os.path.exists(path): os.remove(path)
-            with open(path, mode="wb") as f:
-                f.write(data)
-        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(data["video"]["duration"], data["title"], path)
+        nico=NicoNicoVideo(url=url)
+        nico.connect()
+        data=nico.get_info()
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(data["video"]["duration"], data["video"]["title"], nico.get_download_link(), nico=nico)
     else:
         return -1
     if channel.is_playing():
@@ -409,7 +407,7 @@ async def play(ctx, *query):
             view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
             await ctx.send("Select Music to Play.",view=view)
         else:
-            ctx.send("Error in Searching Music.")
+            await ctx.send("Error in Searching Music.")
 @bot.slash_command(name="play", desecription="join to VC")
 async def play(ctx, query:Option(str, "Serch text or url", required=True)):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):

@@ -64,7 +64,7 @@ class Playlist():
                 if len(self.playlist)!=0: self.state="playing"
                 else: self.state="stopping"
             elif self.state == "skipping":
-                self.stop_callback(self)
+                self.stop_callback(self, data)
                 self.playlist.pop(data["title"])
                 threading.Thread(target=self._delfile, args=[data["path"]]).start()
                 if len(self.playlist)!=0: self.state="playing"
@@ -83,12 +83,12 @@ class Playlist():
                     pass
             elif self.state == "stoping":
                 self.stopwatch.stop()
-                self.stop_callback(self)
+                self.stop_callback(self, data)
                 self.state="stop"
                 return
             time.sleep(0.1)
-    def add(self, length, title, path):
-        self.playlist[title]={"title":title, "length":length, "path":path}
+    def add(self, length, title, path, nico=None):
+        self.playlist[title]={"title":title, "length":length, "path":path, "nico":nico}
     def play(self):
         self.thread=threading.Thread(target=self.watcher)
         self.state="playing"
