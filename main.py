@@ -373,7 +373,7 @@ class MusicSelction(Select):
                 text+=f'Added to queue "{value}".\n'
             else:
                 text+=f'Oh...Some Error occured...\n'
-        await interaction.message.edit(content=text)
+            await interaction.message.edit(content=text)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel=None):
