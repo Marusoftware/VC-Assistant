@@ -350,19 +350,19 @@ class MusicSelction(Select):
         super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
         self.urllist=urllist
     async def callback(self, interaction):
-        if len(self.values) == 1:
-            await interaction.message.edit(content=f'Prepareing playing "{value}"...', view=None)
-        else:
+        if len(self.values) != 1:
             await interaction.message.edit(content=f'Prepareing playing Musics...', view=None)
         text=""
         for value in self.values:
+            if len(self.values) == 1:
+                await interaction.message.edit(content=f'Prepareing playing "{value}"...', view=None)
             status=play_music(value, interaction.guild.voice_client)
             if status == 0:
-                text+=f'Start playing "{value}".'
+                text+=f'Start playing "{value}".\n'
             elif status == 1:
-                text+=f'Added to queue "{value}".'
+                text+=f'Added to queue "{value}".\n'
             else:
-                text+=f'Oh...Some Error occured...'
+                text+=f'Oh...Some Error occured...\n'
         await interaction.message.edit(content=text)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
@@ -550,7 +550,7 @@ async def nowplaying(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
-    if not ctx.guild.voice_client is None or not ctx.guild.voice_client.is_playing():
+    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
         music=list(playlist.playlist.keys())[0]
         await ctx.send(content=f'State:{playlist.state}\nTitle:{playlist.playlist[music]["title"]}\nPos:{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}')
@@ -561,7 +561,7 @@ async def nowplaying(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.')
         return
-    if not ctx.guild.voice_client is None or not ctx.guild.voice_client.is_playing():
+    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
         music=list(playlist.playlist.keys())[0]
         await ctx.respond(content=f'State:{playlist.state}\nTitle:{playlist.playlist[music]["title"]}\nPos:{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}')
@@ -573,7 +573,7 @@ async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
-    if not ctx.guild.voice_client is None or not ctx.guild.voice_client.is_playing():
+    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
         text=f'Index Title Length\n'
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         n=0
@@ -588,7 +588,7 @@ async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.')
         return
-    if not ctx.guild.voice_client is None or not ctx.guild.voice_client.is_playing():
+    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
         text=f'Index Title Length\n'
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         n=0
