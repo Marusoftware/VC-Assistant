@@ -344,7 +344,7 @@ def stop_callback(self, data):
 def resume_callback(self):
     self.channel.resume()
 def play_callback(self, data):
-    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn"))
+    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"))
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel, max_values=1):
         super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
