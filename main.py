@@ -350,7 +350,7 @@ class MusicSelction(Select):
         super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
         self.urllist=urllist
     async def callback(self, interaction):
-        if len(self.values) == 0:
+        if len(self.values) == 1:
             await interaction.message.edit(content=f'Prepareing playing "{value}"...', view=None)
         else:
             await interaction.message.edit(content=f'Prepareing playing Musics...', view=None)
@@ -414,6 +414,9 @@ async def play(ctx, *query):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
+    if ctx.guild.voice_client is None:
+        await ctx.send("Wasn't connected to VC")
+        return
     service=service_detection(query)
     if service in ["youtube","nico"]:
         msg = await ctx.reply(content=f'Prepareing playing...', mention_author=True)
@@ -444,6 +447,9 @@ async def play(ctx, *query):
 async def play(ctx, query:Option(str, "Serch text or url", required=True)):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.', ephemeral=True)
+        return
+    if ctx.guild.voice_client is None:
+        await ctx.respond("Wasn't connected to VC...", ephemeral=True)
         return
     service=service_detection(query)
     if service in ["youtube","nico"]:
