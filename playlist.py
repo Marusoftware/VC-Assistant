@@ -85,7 +85,7 @@ class Playlist():
                 self.state="stop"
                 return
             elif data["length"]+1 <= self.stopwatch.getTime():
-                if len(self.playlist)>=1:
+                if len(self.playlist)>1:
                     self.state="playing"
                     if self.loop:
                         self.playlist.move_to_end(data["title"])
