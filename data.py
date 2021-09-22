@@ -19,7 +19,7 @@ class GuildData():
         if os.path.exists(self.data_path):
             self.data = pickle.load(open(self.data_path, "rb"))
         else:
-            self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True}
+            self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none"}
             self._syncData()
         self.playlist=Playlist()
         playlist_list.append(self.playlist)

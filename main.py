@@ -4,7 +4,7 @@ from discord.ui import Select, View
 from data import Data as _Data, playlist_list
 import logging, argparse, discord, random, string, re, datetime, os, subprocess, urllib
 from discord import SelectOption, Option, SlashCommandOptionType
-from pytube import YouTube
+from pytube import YouTube, Search
 from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 #parse argv
@@ -272,20 +272,27 @@ async def search_music(ctx, query, service):
             return urllist
     else:
         key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
-        if not key:
-            return False 
+        if key == "none":
+            yts=Search(query=query).results
+            for i in range(5):
+                yt=yts[i]
+                title=yt.title
+                if len(title)>90:
+                    title=title[0:90]
+                urllist.append(SelectOption(label=title,value=yt.watch_url))
+            return urllist
         else:
             youtube = build('youtube', 'v3', developerKey=key)
             youtube_query = youtube.search().list(q=query, part='id,snippet', maxResults=5)
             youtube_res = youtube_query.execute()
             url=youtube_res.get('items', [])
-        for item in url:
-            if item['id']['kind'] == 'youtube#video':
-                title=item["snippet"]["title"]
-                if len(title)>90:
-                    title=title[0:90]
-                urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
-        return urllist
+            for item in url:
+                if item['id']['kind'] == 'youtube#video':
+                    title=item["snippet"]["title"]
+                    if len(title)>90:
+                        title=title[0:90]
+                    urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
+            return urllist
 def pause_callback(self):
     self.channel.pause()
 def stop_callback(self, data):
@@ -301,7 +308,8 @@ def play_music(url, channel, service="detect"):
         service=service_detection(url)
     if service == "youtube":
         yt = YouTube(url=url)
-        stream=yt.streams.filter(only_audio=True)[0]
+        #stream=yt.streams.filter(only_audio=True)[0]
+        stream=yt.streams.get_audio_only()
         path=stream.download(output_path=argv.path)
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path)
     elif service == "nico":
