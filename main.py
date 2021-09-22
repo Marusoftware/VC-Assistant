@@ -573,7 +573,7 @@ async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
-    if not ctx.guild.voice_client is None:
+    if not ctx.guild.voice_client is None or not ctx.guild.voice_client.is_playing():
         text=f'Index Title Length\n'
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         n=0
@@ -581,12 +581,14 @@ async def showq(ctx):
             n+=1
             text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}\n'
         await ctx.send(text)
+    else:
+        await ctx.send("Now, No Music(s) is in queue...")
 @bot.slash_command(name="showq", desecription="Show queued Music.")
 async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.')
         return
-    if not ctx.guild.voice_client is None:
+    if not ctx.guild.voice_client is None or not ctx.guild.voice_client.is_playing():
         text=f'Index Title Length\n'
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         n=0
@@ -594,6 +596,8 @@ async def showq(ctx):
             n+=1
             text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}\n'
         await ctx.respond(text)
+    else:
+        await ctx.respond("Now, No Music(s) is in queue...")
 #del
 @bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music.")
 async def showq(ctx, index:int):
