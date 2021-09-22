@@ -45,6 +45,7 @@ class Playlist():
         self.stopwatch=StopWatch()
         self.playlist=OrderedDict()
         self.channel=None
+        self.loop=False
         self.play_callback=play_callback
         self.pause_callback=pause_callback
         self.stop_callback=stop_callback
@@ -58,11 +59,6 @@ class Playlist():
                 self.play_callback(self, data)
                 self.stopwatch.start()
                 self.state = "play"
-            elif data["length"]+1 <= self.stopwatch.getTime():
-                self.playlist.pop(data["title"])
-                threading.Thread(target=self._delfile, args=[data["path"]]).start()
-                if len(self.playlist)!=0: self.state="playing"
-                else: self.state="stopping"
             elif self.state == "skipping":
                 self.stop_callback(self, data)
                 self.playlist.pop(data["title"])
@@ -84,11 +80,29 @@ class Playlist():
             elif self.state == "stoping":
                 self.stopwatch.stop()
                 self.stop_callback(self, data)
+                self.playlist.pop(data["title"])
+                self._delfile(data["path"])
                 self.state="stop"
                 return
+            elif data["length"]+1 <= self.stopwatch.getTime():
+                if len(self.playlist)>=1:
+                    self.state="playing"
+                    if self.loop:
+                        self.playlist.move_to_end(data["title"])
+                    else:
+                        self.playlist.pop(data["title"])
+                        threading.Thread(target=self._delfile, args=[data["path"]]).start()
+                elif len(self.playlist)==1:
+                    self.state="stopping"
+                else:
+                    if self.loop:
+                        pass
+                    else:
+                        self.state="stopping"
+                
             time.sleep(0.1)
-    def add(self, length, title, path, nico=None):
-        self.playlist[title]={"title":title, "length":length, "path":path, "nico":nico}
+    def add(self, length, title, path, user, nico=None):
+        self.playlist[title]={"title":title, "length":length, "path":path, "nico":nico, "user":user}
     def play(self):
         self.thread=threading.Thread(target=self.watcher)
         self.state="playing"
