@@ -313,14 +313,17 @@ async def get_playlist(ctx, query, service):
                 title=title[0:90]
             urllist.append(SelectOption(label=title,value=item.watch_url))
         return urllist
-def play_music(url, channel, user, service="detect"):
+def play_music(url, channel, user, service="detect", stream=True):
     if service == "detect":
         service=service_detection(url)
     if service == "youtube":
         yt = YouTube(url=url)
         #stream=yt.streams.filter(only_audio=True)[0]
         stream=yt.streams.get_audio_only()
-        path=stream.download(output_path=argv.path)
+        if stream:
+            path=stream.url
+        else:
+            path=stream.download(output_path=argv.path)
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path, user)
     elif service == "nico":
         nico=NicoNicoVideo(url=url)
@@ -366,7 +369,7 @@ class MusicSelction(Select):
         for value in self.values:
             if len(self.values) == 1:
                 await interaction.message.edit(content=f'Prepareing playing "{value}"...', view=None)
-            status=play_music(value, interaction.guild.voice_client, interaction.user)
+            status=play_music(value, interaction.guild.voice_client, interaction.user, stream=True)
             if status == 0:
                 text+=f'Start playing "{value}".\n'
             elif status == 1:
