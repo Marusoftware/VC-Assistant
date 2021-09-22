@@ -1,12 +1,12 @@
-from discord.ext import commands
-from discord.member import Member
-from discord.ui import Select, View
+from discord import SelectOption, Option, SlashCommandOptionType, Member
+import logging, argparse, discord, random, string, re, datetime
 from data import Data as _Data, playlist_list
-import logging, argparse, discord, random, string, re, datetime, os, subprocess, urllib
-from discord import SelectOption, Option, SlashCommandOptionType
-from pytube import YouTube, Search
+from pytube import YouTube, Search, Playlist
 from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
+from discord.ui import Select, View
+from discord.ext import commands
+
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
 argparser.add_argument("-log_level", action="store", type=int, dest="log_level", default=20 ,help="set Log level.(0-50)")
@@ -249,7 +249,7 @@ async def connect(channel):
 async def search_music(ctx, query, service):
     urllist=[]
     if service == "search-nico":
-        query=query.replace("nico://","")
+        query=query.replace("nico:","")
         import json, urllib.request
         params = {
             'q':query,
@@ -293,16 +293,16 @@ async def search_music(ctx, query, service):
                         title=title[0:90]
                     urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
             return urllist
-def pause_callback(self):
-    self.channel.pause()
-def stop_callback(self, data):
-    if not data["nico"] is None:
-        data["nico"].close()
-    self.channel.stop()
-def resume_callback(self):
-    self.channel.resume()
-def play_callback(self, data):
-    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn"))
+async def get_playlist(ctx, query, service):
+    urllist=[]
+    if service == "playlist-youtube":
+        pl=Playlist(query)
+        for item in pl.videos:
+            title=item.title
+            if len(title)>90:
+                title=title[0:90]
+            urllist.append(SelectOption(label=title,value=item.watch_url))
+        return urllist
 def play_music(url, channel, service="detect"):
     if service == "detect":
         service=service_detection(url)
@@ -329,25 +329,41 @@ def service_detection(url):
         return "youtube"
     elif re.match("https?://(\S+\.)?nicovideo\.jp/watch/(\S)+",url):
         return "nico"
-    elif re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
+    elif re.match("https?://(\S+\.)?youtube\.com/playlist\?list=(\S)+",url):
         return "playlist-youtube"
-    elif re.match("nico://(\S)+", url):
+    elif re.match("nico:(\S)+", url):
         return "search-nico"
     else:
         return "search-youtube"
+def pause_callback(self):
+    self.channel.pause()
+def stop_callback(self, data):
+    if not data["nico"] is None:
+        data["nico"].close()
+    self.channel.stop()
+def resume_callback(self):
+    self.channel.resume()
+def play_callback(self, data):
+    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn"))
 class MusicSelction(Select):
-    def __init__(self, custom_id:str, urllist:list, channel):
-        super().__init__(custom_id=custom_id, options=urllist)
+    def __init__(self, custom_id:str, urllist:list, channel, max_values=1):
+        super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
         self.urllist=urllist
     async def callback(self, interaction):
-        await interaction.message.edit(content=f'Prepareing playing "{self.values[0]}"...', view=None)
-        status=play_music(self.values[0], interaction.guild.voice_client)
-        if status == 0:
-            await interaction.message.edit(content=f'Start playing "{self.values[0]}".')
-        elif status == 1:
-            await interaction.message.edit(content=f'Added to queue "{self.values[0]}".')
+        if len(self.values) == 0:
+            await interaction.message.edit(content=f'Prepareing playing "{value}"...', view=None)
         else:
-            await interaction.message.edit(content=f'Oh...Some Error occured...')
+            await interaction.message.edit(content=f'Prepareing playing Musics...', view=None)
+        text=""
+        for value in self.values:
+            status=play_music(value, interaction.guild.voice_client)
+            if status == 0:
+                text+=f'Start playing "{value}".'
+            elif status == 1:
+                text+=f'Added to queue "{value}".'
+            else:
+                text+=f'Oh...Some Error occured...'
+        await interaction.message.edit(content=text)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel=None):
@@ -400,7 +416,7 @@ async def play(ctx, *query):
         return
     service=service_detection(query)
     if service in ["youtube","nico"]:
-        msg = await ctx.send(content=f'Prepareing playing...', mention_author=True)
+        msg = await ctx.reply(content=f'Prepareing playing...', mention_author=True)
         status=play_music(query, ctx.guild.voice_client, service)
         if status == 0:
             await msg.edit(content=f'Start playing.')
@@ -408,6 +424,14 @@ async def play(ctx, *query):
             await msg.edit(content=f'Added to queue.')
         else:
             await msg.edit(content=f'Oh...Some Error occured...')
+    elif service in ["playlist-youtube"]:
+        urllist=await get_playlist(ctx, query, service)
+        if urllist:
+            view=View(timeout=None)
+            view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client, max_values=len(urllist)))
+            await ctx.send("Select Music to Play.(Multiple is OK)",view=view)
+        else:
+            await ctx.send("Error in Searching Music.")
     else:
         urllist=await search_music(ctx, query, service)
         if urllist:
@@ -431,6 +455,14 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True)):
             await msg.edit(content=f'Added to queue.')
         else:
             await msg.edit(content=f'Oh...Some Error occured...')
+    elif service in ["playlist-youtube"]:
+        urllist=await get_playlist(ctx, query, service)
+        if urllist:
+            view=View(timeout=None)
+            view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client, max_values=len(urllist)))
+            await ctx.respond("Select Music to Play.(Multiple is OK)",view=view)
+        else:
+            await ctx.respond("Error in Searching Music.")
     else:
         urllist=await search_music(ctx, query, service)
         if urllist:
@@ -538,7 +570,7 @@ async def showq(ctx):
         n=0
         for music in playlist:
             n+=1
-            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}s\n'
+            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}\n'
         await ctx.send(text)
 @bot.slash_command(name="showq", desecription="Show queued Music.")
 async def showq(ctx):
@@ -551,7 +583,7 @@ async def showq(ctx):
         n=0
         for music in playlist:
             n+=1
-            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}s\n'
+            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}\n'
         await ctx.respond(text)
 #del
 @bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music.")
