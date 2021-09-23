@@ -96,7 +96,7 @@ class Playlist():
                     self.state="stopping"
                 else:
                     if self.loop:
-                        pass
+                        self.state="playing"
                     else:
                         self.state="stopping"
                 
