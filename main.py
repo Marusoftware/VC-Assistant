@@ -59,9 +59,9 @@ def StoTime(s, length=None):
 def state2emoji(state):
     if state == "play":
         return ":arrow_forward:"
-    elif state == "resume":
+    elif state == "pause":
         return ":pause_button:"
-    elif state == "state":
+    elif state == "stop":
         return ":stop_button:" 
     else:
         return ":grey_question:"
@@ -241,7 +241,7 @@ async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choic
             text+=f'{i} {pattern} {plist[pattern][0]} {plist[pattern][1]}\n'
         await ctx.respond(text)
 
-##Youtube
+##Music
 #utils
 async def connect(channel):
     try:
@@ -313,18 +313,18 @@ async def get_playlist(ctx, query, service):
                 title=title[0:90]
             urllist.append(SelectOption(label=title,value=item.watch_url))
         return urllist
-def play_music(url, channel, user, service="detect", stream=True):
+def play_music(url, channel, user, service="detect", stream=False):
     if service == "detect":
         service=service_detection(url)
     if service == "youtube":
         yt = YouTube(url=url)
         #stream=yt.streams.filter(only_audio=True)[0]
-        stream=yt.streams.get_audio_only()
+        st=yt.streams.get_audio_only()
         if stream:
-            path=stream.url
+            path=st.url
         else:
-            path=stream.download(output_path=argv.path)
-        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, stream.title, path, user)
+            path=st.download(output_path=argv.path)
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, st.title, path, user)
     elif service == "nico":
         nico=NicoNicoVideo(url=url)
         nico.connect()
@@ -369,7 +369,7 @@ class MusicSelction(Select):
         for value in self.values:
             if len(self.values) == 1:
                 await interaction.message.edit(content=f'Prepareing playing "{value}"...', view=None)
-            status=play_music(value, interaction.guild.voice_client, interaction.user, stream=True)
+            status=play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1)
             if status == 0:
                 text+=f'Start playing "{value}".\n'
             elif status == 1:
@@ -539,7 +539,6 @@ async def pause(ctx):
     if not ctx.guild.voice_client is None:
         await ctx.respond(content=f'Resuming Music...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().resume()
-
 #stop
 @bot.command(name="stop", aliases=["st"], desecription="Stop Music")
 async def stop(ctx):
@@ -563,8 +562,8 @@ async def nowplaying(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
-    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    if len(playlist.playlist)!=0:
         music=list(playlist.playlist.keys())[0]
         user=playlist.playlist[music]["user"]
         user=user.name if user.nick is None else user.nick
@@ -576,8 +575,8 @@ async def nowplaying(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.')
         return
-    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    if len(playlist.playlist)!=0:
         music=list(playlist.playlist.keys())[0]
         user=playlist.playlist[music]["user"]
         user=user.name if user.nick is None else user.nick
@@ -590,9 +589,10 @@ async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
-    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
+    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    if len(playlist.playlist)!=0:
         text=f'Index Title Length\n'
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        playlist=playlist.playlist
         n=0
         for music in playlist:
             n+=1
@@ -605,9 +605,10 @@ async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.')
         return
-    if all([not ctx.guild.voice_client is None, ctx.guild.voice_client.is_playing()]):
+    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    if len(playlist.playlist)!=0:
         text=f'Index Title Length\n'
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        playlist=playlist.playlist
         n=0
         for music in playlist:
             n+=1
