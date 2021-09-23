@@ -92,8 +92,6 @@ class Playlist():
                     else:
                         self.playlist.pop(data["title"])
                         threading.Thread(target=self._delfile, args=[data["path"]]).start()
-                elif len(self.playlist)==1:
-                    self.state="stopping"
                 else:
                     if self.loop:
                         self.state="playing"
