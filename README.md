@@ -4,13 +4,29 @@
 VCで、あなたをお手伝いするdiscord用のボットです。
 次のような機能があります。
 - 正規表現([ここ](https://docs.python.org/ja/3/library/re.html#regular-expression-syntax)を参照)にマッチしたときにメッセージを送信
-- VCで音楽を流します。
+- VCで音楽を流します。   
+# 使用方法
+まず、discord bot tokenを取得してください。    
+そのあと、下のどちらかの方法でご利用ください。
+## 自力
+このボットは、python3.8以上が必要です。
+まず、依存関係(動作させるのに必要なライブラリ等)をインストールします。   
+`python3 -m pip install -r requirements.txt`   
+次に、ffmpegをインストールします。   
+Windowsの場合は、ffmpeg公式より、ダウンロードしたものを、PATH環境変数に指定されているフォルダの配下におく必要があります。   
+Linux,Macの場合は、パッケージマネージャを利用してインストールすることができることがあります。    
+すべて完了したら、実行してください。   
+`py main.py -token [トークン(必須), envに設定すると、代わりにBOT_TOKENを読みます。]`   
+## Heroku
 herokuでデプロイしてお使いください。   
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+以下のボタンを使用して、初期設定が終わったら、Dyno(run_bot)を有効化してください。   
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)   
+なお、現在、設定の保存機能をサポートしていません。今しばらくお待ちください。
 
 ## 注意
 このソフトウェアに関してMarusoftwareは一切の責任を負いません。   
-次のように環境変数、並びにビルドパックを設定した上でのおすすめします。   
+Herokuに関しては、次のように環境変数、並びにビルドパックを設定した上でのおすすめします。   
+(ボタンを使用した場合は、自動的に設定されます。)   
 ### 環境変数(Config Vars)
 - BOT_TOKEN   
 あなたのボットトークン。以下で発行可能。   
