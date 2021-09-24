@@ -36,7 +36,10 @@ class GuildData():
     def getMatcherDict(self):
         return self.data["matcher_dict"]
     def addMatcherDict(self, pattern, check_type, text):
-        self.data["matcher_dict"][pattern]=(check_type, text)
+        if check_type == "event":
+            self.data["matcher_dict"]["on_"+pattern]=(check_type, text)
+        else:
+            self.data["matcher_dict"][pattern]=(check_type, text)
     def delMatcherDict(self, pattern):
         self.data["matcher_dict"].pop(pattern)
     def getPlaylist(self):

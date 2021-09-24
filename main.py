@@ -64,7 +64,16 @@ def state2emoji(state):
     elif state == "stop":
         return ":stop_button:" 
     else:
+        print(state)
         return ":grey_question:"
+#Send
+async def Send(ctx, content, view=None, ephemeral=False):
+    if type(ctx) == commands.Context:
+        ctx:commands.Context=ctx
+        await ctx.send(content=content, view=view)
+    elif type(ctx) == discord.app.InteractionContext:
+        ctx:discord.app.InteractionContext=ctx
+        await ctx.send(content=content, view=view, ephemeral=ephemeral)
 
 ##bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
@@ -81,6 +90,19 @@ async def on_message(message: discord.Message):
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enMatcher"):
         await matcher_callback(message)
     await bot.process_commands(message)
+@bot.event
+async def on_member_join(member:discord.Member):
+    guild=Data.getGuildData(_getGuildId(member.guild.id))
+    if not guild.getProperty(property_name="enMatcher"): return
+    plist=guild.getMatcherDict()
+    if member.bot:
+        if "on_bot_join" in plist:
+            txt = plist["on_bot_join"]["text"].replace("$member",member.mention)
+            member.guild.system_channel.send(txt)
+    else:
+        if "on_member_join" in plist:
+            txt = plist["on_member_join"]["text"].replace("$member",member.mention)
+            member.guild.system_channel.send(txt)
 
 """commands"""
 ## general
@@ -178,14 +200,20 @@ async def matcher(ctx):
     if ctx.invoked_subcommand is None:
         await ctx.send('This command must have subcommands.\n (add, del, list)')
 @matcher.command("add", desecription="Add word to dict.")
-async def add(ctx, pattern:str, check_type:str, text:str):
+async def add(ctx, pattern:str, check_type:str="search", text:str="Hello World"):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
         await ctx.send('Matcher is not enabled.')
         return
-    if not check_type in ["match","search","fullmatch"]:
+    if not check_type in ["match","search","fullmatch","event"]:
         await ctx.send(f'{check_type} is not supported.')
         return
-    Data.getGuildData(_getGuildId(ctx)).addMatcherDict(pattern, check_type, text)
+    try:
+        if check_type != "event":
+            pattern=re.compile(pattern)
+    except re.error:
+        await ctx.respond("Oh no...Pattern is wrong...", ephemeral=True)
+    else:
+        Data.getGuildData(_getGuildId(ctx)).addMatcherDict(pattern, check_type, text)
     await ctx.send("Add word to dict.")
 @matcher.command("del", desecription="Del word from dict.")
 async def delete(ctx, pattern:str):
@@ -207,7 +235,7 @@ async def matcher_list(ctx):
         text+=f'{i} {pattern} {plist[pattern][0]} {plist[pattern][1]}\n'
     await ctx.send(text)
 @bot.slash_command(name="matcher", desecription="Setting Matcher Feature.")
-async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["add","del","list"]), pattern:Option(str, "Pattern(regax)", required=False), check_type:Option(str, "Check Type",choices=["match","search","fullmatch"], required=False, default="search"), text:Option(str, "Text", required=False)):
+async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["add","del","list"]), pattern:Option(str, "Pattern(regax)", required=False), check_type:Option(str, "Check Type",choices=["match","search","fullmatch","event"], required=False, default="search"), text:Option(str, "Text", required=False)):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
         await ctx.respond('Matcher is not enabled.', ephemeral=True)
         return
@@ -216,9 +244,10 @@ async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choic
             await ctx.respond("You must set pattern, check_type and text option.", ephemeral=True)
         else:
             try:
-                pattern=re.compile(pattern)
+                if check_type != "event":
+                    pattern=re.compile(pattern)
             except re.error:
-                await ctx.respond("Oh no...Can't find such as feature..", ephemeral=True)
+                await ctx.respond("Oh no...Pattern is wrong...", ephemeral=True)
             else:
                 Data.getGuildData(_getGuildId(ctx)).addMatcherDict(pattern, check_type, text)
                 await ctx.respond("Add word to dict.")
@@ -401,6 +430,7 @@ async def join(ctx, channel=None):
             await ctx.send("Connected to VC")
 @bot.slash_command(name="join", desecription="join to VC")
 async def join(ctx, channel:Option(SlashCommandOptionType.channel, "VC", required=False, default=None)):
+    print(type(ctx))
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.', ephemeral=True)
         return
