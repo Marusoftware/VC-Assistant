@@ -1,0 +1,4 @@
+git+https://github.com/Pycord-Development/pycord [voice]
+pytube
+google-api-python-client
+niconico-dl

@@ -1,5 +1,5 @@
 from discord import SelectOption, Option, SlashCommandOptionType, Member
-import logging, argparse, discord, random, string, re, datetime
+import logging, argparse, discord, random, string, re, datetime, os
 from data import Data as _Data, playlist_list
 from pytube import YouTube, Search, Playlist
 from apiclient.discovery import build
@@ -719,6 +719,9 @@ async def disconnect(ctx):
         await ctx.guild.voice_client.disconnect()
 
 ##Run
-bot.run(argv.token)
+if argv.token == "env":
+    bot.run(os.environ["BOT_TOKEN"])
+else:
+    bot.run(argv.token)
 for i in playlist_list:
     i.cleanup()
