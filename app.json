@@ -1,0 +1,6 @@
+{
+    "name": "vc-assistant",
+    "description": "VC-Assistant botを自分用にデプロイします。",
+    "repository": "https://github.com/Marusoftware/VC-Assistant",
+    "keywords": ["python", "discord", "bot"]
+  }
