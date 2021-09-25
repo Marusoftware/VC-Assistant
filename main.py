@@ -98,11 +98,11 @@ async def on_member_join(member:discord.Member):
     if member.bot:
         if "on_bot_join" in plist:
             txt = plist["on_bot_join"][1].replace("$member",member.mention)
-            member.guild.system_channel.send(txt)
+            await member.guild.system_channel.send(txt)
     else:
         if "on_member_join" in plist:
             txt = plist["on_member_join"][1].replace("$member",member.mention)
-            member.guild.system_channel.send(txt)
+            await member.guild.system_channel.send(txt)
 
 """commands"""
 ## general
