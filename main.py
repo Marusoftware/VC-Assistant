@@ -97,11 +97,11 @@ async def on_member_join(member:discord.Member):
     plist=guild.getMatcherDict()
     if member.bot:
         if "on_bot_join" in plist:
-            txt = plist["on_bot_join"]["text"].replace("$member",member.mention)
+            txt = plist["on_bot_join"][1].replace("$member",member.mention)
             member.guild.system_channel.send(txt)
     else:
         if "on_member_join" in plist:
-            txt = plist["on_member_join"]["text"].replace("$member",member.mention)
+            txt = plist["on_member_join"][1].replace("$member",member.mention)
             member.guild.system_channel.send(txt)
 
 """commands"""
