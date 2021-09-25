@@ -92,7 +92,7 @@ async def on_message(message: discord.Message):
     await bot.process_commands(message)
 @bot.event
 async def on_member_join(member:discord.Member):
-    guild=Data.getGuildData(_getGuildId(member.guild.id))
+    guild=Data.getGuildData(_getGuildId(member))
     if not guild.getProperty(property_name="enMatcher"): return
     plist=guild.getMatcherDict()
     if member.bot:
