@@ -7,5 +7,6 @@
                   {"url":"https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"},
                   {"url":"https://github.com/xrisk/heroku-opus.git"}
                 ],
-    "env":{"BOT_TOKEN":{"description":"あなたのボットトークン。(https://discord.com/developers/)","required":"true"}}
+    "env":{"BOT_TOKEN":{"description":"あなたのボットトークン。(https://discord.com/developers/)","required":"true"}},
+    "addons":["postgresql:hobby-dev"]
   }

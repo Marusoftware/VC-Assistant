@@ -6,7 +6,8 @@ VCで、あなたをお手伝いするdiscord用のボットです。
 - 正規表現([ここ](https://docs.python.org/ja/3/library/re.html#regular-expression-syntax)を参照)にマッチしたときにメッセージを送信
 - VCで音楽を流します。   
 # 使用方法
-まず、discord bot tokenを取得してください。    
+まず、discord bot tokenを取得してください。([ここ](https://discord.com/developers/)から取得可能です。)    
+なお、このボットでは、intentを採用しています。Presence Intent(Developer)
 そのあと、下のどちらかの方法でご利用ください。
 ## 自力
 このボットは、python3.8以上が必要です。
@@ -21,12 +22,8 @@ Linux,Macの場合は、パッケージマネージャを利用してインス�
 herokuでデプロイしてお使いください。   
 以下のボタンを使用して、初期設定が終わったら、Dyno(run_bot)を有効化してください。   
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)   
-なお、現在、設定の保存機能をサポートしていません。今しばらくお待ちください。
-
-## 注意
-このソフトウェアに関してMarusoftwareは一切の責任を負いません。   
-Herokuに関しては、次のように環境変数、並びにビルドパックを設定した上でのおすすめします。   
-(ボタンを使用した場合は、自動的に設定されます。)   
+なお、現在、設定の保存機能をサポートしていません。今しばらくお待ちください。   
+自動的に設定されますが、念のため以下に示します。   
 ### 環境変数(Config Vars)
 - BOT_TOKEN   
 あなたのボットトークン。以下で発行可能。   
@@ -34,4 +31,10 @@ https://discord.com/developers/
 ### ビルドパック
 - heroku/python(自動適用されるはず)
 - https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
-- https://github.com/xrisk/heroku-opus.git
+- https://github.com/xrisk/heroku-opus.git   
+### アドオン
+postgresql   
+## 注意
+このソフトウェアに関してMarusoftwareは一切の責任を負いません。   
+Herokuに関しては、次のように環境変数、並びにビルドパックを設定した上でのおすすめします。   
+(ボタンを使用した場合は、自動的に設定されます。)   

@@ -1,5 +1,12 @@
 import os, pickle
 from playlist import Playlist
+if "DATABASE_URL" in os.environ:
+    import psycopg2
+    import psycopg2.extras
+    db_url=os.environ["DATABASE_URL"]
+else:
+    db_url=None
+
 playlist_list=[]
 class Data():
     def __init__(self, data_dir=""):
@@ -15,16 +22,50 @@ class Data():
 class GuildData():
     def __init__(self, guild_id, data_dir):
         self.data_dir=data_dir#HERE:Guild DB Directory
+        self.guild_id=guild_id
         self.data_path=os.path.join(self.data_dir,str(guild_id)+".guild")
-        if os.path.exists(self.data_path):
-            self.data = pickle.load(open(self.data_path, "rb"))
+        self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none"}
+        if db_url:
+            self.conn = psycopg2.connect(db_url)
+            cursor=self.conn.cursor()
+            cursor.execute("create table if not exists datas(gid text, data bytea)")
+            self.conn.commit()
+            cursor.close()
+            cursor=self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("select * from datas")
+            datas=cursor.fetchall()
+            cursor.close()
+            if str(guild_id) in list(datas.values()):
+                for data in datas:
+                    if data["gid"] == str(guild_id):
+                        self.data=pickle.loads(data["data"].tobytes())
+                        break
+            else:
+                self._syncData()
         else:
-            self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none"}
-            self._syncData()
+            if os.path.exists(self.data_path):
+                self.data = pickle.load(open(self.data_path, "rb"))
+            else:
+                self._syncData()
         self.playlist=Playlist()
         playlist_list.append(self.playlist)
     def _syncData(self):
-        pickle.dump(self.data, open(self.data_path, "wb"))
+        if db_url:
+            cursor=self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            cursor.execute("select * from datas")
+            datas=cursor.fetchall()
+            cursor.close()
+            if str(self.guild_id) in list(datas.values()):
+                cursor=self.conn.cursor()
+                cursor.execute("delete from datas where gid == %s", (str(self.guild_id),))
+                self.conn.commit()
+                cursor.close()
+            cursor=self.conn.cursor()
+            cursor.execute("insert into datas (gid, data) values (%s, %s)", (str(self.guild_id),psycopg2.Binary(pickle.dumps(self.data)),))
+            self.conn.commit()
+            cursor.close()
+        else:
+            pickle.dump(self.data, open(self.data_path, "wb"))
     def getProperty(self, property_name):
         if not property_name in self.data:
             return False
