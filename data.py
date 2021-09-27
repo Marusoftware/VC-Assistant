@@ -7,6 +7,12 @@ if "DATABASE_URL" in os.environ:
 else:
     db_url=None
 
+def getGidlist(datas):
+    l = list()
+    for d in datas:
+        l.append(d["gid"])
+    return l
+
 playlist_list=[]
 class Data():
     def __init__(self, data_dir=""):
@@ -35,7 +41,7 @@ class GuildData():
             cursor.execute("select * from datas")
             datas=cursor.fetchall()
             cursor.close()
-            if str(guild_id) in list(datas.values()):
+            if str(guild_id) in getGidlist(datas):
                 for data in datas:
                     if data["gid"] == str(guild_id):
                         self.data=pickle.loads(data["data"].tobytes())
@@ -55,7 +61,7 @@ class GuildData():
             cursor.execute("select * from datas")
             datas=cursor.fetchall()
             cursor.close()
-            if str(self.guild_id) in list(datas.values()):
+            if str(self.guild_id) in getGidlist(datas):
                 cursor=self.conn.cursor()
                 cursor.execute("delete from datas where gid == %s", (str(self.guild_id),))
                 self.conn.commit()
