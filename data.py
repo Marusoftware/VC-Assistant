@@ -63,7 +63,7 @@ class GuildData():
             cursor.close()
             if str(self.guild_id) in getGidlist(datas):
                 cursor=self.conn.cursor()
-                cursor.execute("delete from datas where gid == %s", (str(self.guild_id),))
+                cursor.execute("delete from datas where gid = %s", (str(self.guild_id),))
                 self.conn.commit()
                 cursor.close()
             cursor=self.conn.cursor()
