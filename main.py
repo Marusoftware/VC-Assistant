@@ -408,7 +408,7 @@ class MusicSelction(Select):
             await interaction.message.edit(content=text)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
-async def join(ctx, channel=None):
+async def join(ctx, channel:discord.VoiceChannel=None):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
@@ -487,14 +487,15 @@ async def play(ctx, *query):
         else:
             await ctx.send("Error in Searching Music.")
 @bot.slash_command(name="play", desecription="join to VC")
-async def play(ctx, query:Option(str, "Serch text or url", required=True)):
+async def play(ctx, query:Option(str, "Serch text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico"], default="detect")):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.', ephemeral=True)
         return
     if ctx.guild.voice_client is None:
         await ctx.respond("Wasn't connected to VC...", ephemeral=True)
         return
-    service=service_detection(query)
+    if service == "detect":
+        service=service_detection(query)
     if service in ["youtube","nico"]:
         msg = await ctx.respond(content=f'Prepareing playing...', mention_author=True)
         status=play_music(query, ctx.guild.voice_client, ctx.author, service)
