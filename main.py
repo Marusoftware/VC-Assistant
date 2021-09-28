@@ -6,6 +6,7 @@ from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View
 from discord.ext import commands
+import ffmpeg
 
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
@@ -27,10 +28,11 @@ Data=_Data(data_dir=argv.path)
 ##utils
 #get_guild_id
 def _getGuildId(message):
+
     if not message.guild is None:
         return message.guild.id
-    elif not message.author.guild is None:
-        return message.author.guild
+    elif message.author is discord.Member:
+        return message.author.guild.id
     else:
         return message.author.id
 #randomstr
@@ -359,6 +361,8 @@ def play_music(url, channel, user, service="detect", stream=False):
         nico.connect()
         data=nico.get_info()
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(data["video"]["duration"], data["video"]["title"], nico.get_download_link(), user, nico=nico)
+    elif service == "file":
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(url)["streams"][0]["duration"])), stream, url, user)
     else:
         return -1
     if channel.is_playing():
@@ -375,6 +379,8 @@ def service_detection(url):
         return "playlist-youtube"
     elif re.match("nico:(\S)+", url):
         return "search-nico"
+    elif "file" in url:
+        return "file"
     else:
         return "search-youtube"
 def pause_callback(self):
@@ -478,6 +484,17 @@ async def play(ctx, *query):
             await ctx.send("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await ctx.send("Error in Searching Music.")
+    elif service == "file":
+        if len(ctx.message.attachments) != 0:
+            file=ctx.message.attachments[0]
+            msg = await ctx.reply(content=f'Prepareing playing...', mention_author=True)
+            status=play_music(file.url, ctx.guild.voice_client, ctx.author, "file", file.filename)
+            if status == 0:
+                await msg.edit(content=f'Start playing.')
+            elif status == 1:
+                await msg.edit(content=f'Added to queue.')
+            else:
+                await msg.edit(content=f'Oh...Some Error occured...')
     else:
         urllist=await search_music(ctx, query, service)
         if urllist:
@@ -513,6 +530,17 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True), servi
             await ctx.respond("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await ctx.respond("Error in Searching Music.")
+    elif service == "file":
+        if len(ctx.message.attachments) != 0:
+            file=ctx.message.attachments[0]
+            msg = await ctx.respond(content=f'Prepareing playing...')
+            status=play_music(file.url, ctx.guild.voice_client, ctx.author, "file", file.filename)
+            if status == 0:
+                await msg.edit(content=f'Start playing.')
+            elif status == 1:
+                await msg.edit(content=f'Added to queue.')
+            else:
+                await msg.edit(content=f'Oh...Some Error occured...')
     else:
         urllist=await search_music(ctx, query, service)
         if urllist:
