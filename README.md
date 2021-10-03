@@ -7,7 +7,8 @@ VCで、あなたをお手伝いするdiscord用のボットです。
 - VCで音楽を流します。   
 # 使用方法
 まず、discord bot tokenを取得してください。([ここ](https://discord.com/developers/)から取得可能です。)    
-なお、このボットでは、intentを採用しています。Presence Intent(Developer)
+なお、このボットでは、intentを採用しています。Presence Intent(Developer Potal内)を有効にする必要があります。   
+また、スラッシュコマンドを有効にするにはapplications.commandsスコープを有効にする必要があります。
 そのあと、下のどちらかの方法でご利用ください。
 ## 自力
 このボットは、python3.8以上が必要です。
