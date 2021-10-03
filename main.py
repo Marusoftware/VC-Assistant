@@ -1,12 +1,11 @@
 from discord import SelectOption, Option, SlashCommandOptionType, Member
-import logging, argparse, discord, random, string, re, datetime, os
+import logging, argparse, discord, random, string, re, datetime, os, ffmpeg, pyopenjtalk
 from data import Data as _Data, playlist_list
 from pytube import YouTube, Search, Playlist
 from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View
 from discord.ext import commands
-import ffmpeg
 
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
@@ -91,7 +90,10 @@ async def on_message(message: discord.Message):
     if message.author.bot: return
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enMatcher"):
         await matcher_callback(message)
+    if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enTTS"):
+        await tts_callback(message)
     await bot.process_commands(message)
+#on_join
 @bot.event
 async def on_member_join(member:discord.Member):
     guild=Data.getGuildData(_getGuildId(member))
@@ -122,48 +124,47 @@ async def chprefix(ctx, prefix: Option(str, "Prefix string", required=True)):
     Data.getGuildData(_getGuildId(ctx)).setProperty(property_name="prefix",value=prefix)
     await ctx.respond("Prefix was successfully changed.")
 #feature
+features={"matcher":"Matcher","tts":"TTS","music":"Music"}
 @general.group(name="feature", desecription="Setting Feather")
-async def feature(ctx):
+async def featureGrp(ctx):
     if ctx.invoked_subcommand is None:
         await ctx.send('This command must have subcommands.\n (enable, disable, list, apikey)')
-@feature.command(name="enable", desecription="Enable Feather")
+@featureGrp.command(name="enable", desecription="Enable Feather")
 async def enable(ctx, feature: str):
-    if feature == "matcher":
-        Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",True)
-        await ctx.send("Matcher is now enabled!!")
-@feature.command(name="disable", desecription="Disable Feather")
+    if feature in features:
+        Data.getGuildData(_getGuildId(ctx)).setProperty("en"+features[feature],True)
+        await ctx.send(features[feature]+" is now enabled!!")
+    else:
+        await ctx.send(f'Oh no...Can\'t find such as feature..\nSupported features: {",".join(list(features.keys()))}')
+@featureGrp.command(name="disable", desecription="Disable Feather")
 async def disable(ctx, feature: str):
-    if feature == "matcher":
-        Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",False)
-        await ctx.send("Matcher is now disabled!!")
-@feature.command(name="apikey", desecription="Set API key using in Feather")
+    if feature in features:
+        Data.getGuildData(_getGuildId(ctx)).setProperty("en"+features[feature],False)
+        await ctx.send(features[feature]+" is now disabled!!")
+    else:
+        await ctx.send(f'Oh no...Can\'t find such as feature..\nSupported features: {",".join(list(features.keys()))}')
+@featureGrp.command(name="apikey", desecription="Set API key using in Feather")
 async def apikey(ctx, kind:str, key:str):
     Data.getGuildData(_getGuildId(ctx)).setProperty("key"+kind,key)
     await ctx.send("Key was seted.")
 @bot.slash_command(name="feature", desecription="Setting Feather")
-async def feature(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["enable","disable","list","apikey"]), value:Option(str, "Feather or Key Type", required=False), key:Option(str, "API-Key", required=False, default=None)):
+async def feature_com(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["enable","disable","list","apikey"]), value:Option(str, "Feather or Key Type", required=False), key:Option(str, "API-Key", required=False, default=None)):
     if subcommand=="enable":
         if value is None:
             await ctx.respond("This subcommand must have value option(feature name).", ephemeral=True)
-        elif value == "matcher":
-            Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",True)
-            await ctx.respond("Matcher is now enabled!!")
-        elif value == "music":
-            Data.getGuildData(_getGuildId(ctx)).setProperty("enMusic",True)
-            await ctx.respond("Music is now enabled!!")
+        elif value in features:
+            Data.getGuildData(_getGuildId(ctx)).setProperty("en"+features[value],True)
+            await ctx.respond(features[value]+" is now enabled!!")
         else:
-            await ctx.respond("Oh no...Can't find such as feature..", ephemeral=True)
+            await ctx.respond(f'Oh no...Can\'t find such as feature..\nSupported features: {",".join(list(features.keys()))}', ephemeral=True)
     elif subcommand=="disable":
         if value is None:
             await ctx.respond("This subcommand must have value option.(feature name)", ephemeral=True)
-        elif value == "matcher":
-            Data.getGuildData(_getGuildId(ctx)).setProperty("enMatcher",False)
-            await ctx.respond("Matcher is now disabled!!")
-        elif value == "matcher":
-            Data.getGuildData(_getGuildId(ctx)).setProperty("enMusic",False)
-            await ctx.respond("Music is now disabled!!")
+        elif value in features:
+            Data.getGuildData(_getGuildId(ctx)).setProperty("en"+features[value],True)
+            await ctx.respond(features[value]+" is now enabled!!")
         else:
-            await ctx.respond("Oh no...Can't find such as feature..", ephemeral=True)
+            await ctx.respond(f'Oh no...Can\'t find such as feature..\nSupported features: {",".join(list(features.keys()))}', ephemeral=True)
     elif subcommand=="apikey":
         if apikey is None:
             await ctx.respond("Key was seted.", ephemeral=True)
@@ -747,6 +748,34 @@ async def disconnect(ctx):
         await ctx.respond(content=f'Disconnect from VC')
         await ctx.guild.voice_client.disconnect()
 
+##tts
+@bot.group(name="tts", desecription="Text to Speech!!")
+async def tts(ctx):
+    if ctx.invoked_subcommand is None:
+        if Data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
+            await ctx.send("TTS is now enable on this channel!!")
+        else:
+            await ctx.send("TTS is now disable on this channel!!")
+@bot.slash_command(name="tts", desecription="Text to Speech!!")
+async def tts(ctx):
+    if Data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
+        await ctx.respond("TTS is now enable on this channel!!")
+    else:
+        await ctx.respond("TTS is now disable on this channel!!")
+async def tts_callback(message):
+    data=Data.getGuildData(_getGuildId(message))
+    if message.channel.id in data.getTTSChannels():
+        playlist=data.getPlaylist()
+        vdata=pyopenjtalk.tts(message.content)[0].tobytes()[::1013]
+        if playlist.state=="play":
+            playlist.pause()
+            for d in vdata:
+                playlist.channel.send_audio_packet(d, encode=False)
+            playlist.resume()
+        else:
+            for d in vdata:
+                playlist.channel.send_audio_packet(d, encode=False)
+            #playlist.channel.send_audio_packet(discord.FFmpegPCMAudio("/mnt/c/Users/佐藤丸生/Downloads/Queen - Don_t Stop Me Now _Official Video_.mp4").read())
 ##Run
 if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])

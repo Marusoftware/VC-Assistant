@@ -18,19 +18,20 @@ class Data():
     def __init__(self, data_dir=""):
         self.data_dir=data_dir
         self.loaded_guilds={}
+        self.playlists=[]
     def getGuildData(self, guild_id):
         if guild_id in self.loaded_guilds:
             return self.loaded_guilds[guild_id]
         else:
-            guild=GuildData(guild_id, self.data_dir)
+            guild=GuildData(self, guild_id, self.data_dir)
             self.loaded_guilds[guild_id]=guild
             return guild
 class GuildData():
-    def __init__(self, guild_id, data_dir):
+    def __init__(self, data_obj, guild_id, data_dir):
         self.data_dir=data_dir#HERE:Guild DB Directory
         self.guild_id=guild_id
         self.data_path=os.path.join(self.data_dir,str(guild_id)+".guild")
-        self.data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none"}
+        self.default_data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none", "TTSChannels":[],"enTTS":False}
         if db_url:
             self.conn = psycopg2.connect(db_url)
             cursor=self.conn.cursor()
@@ -47,14 +48,19 @@ class GuildData():
                         self.data=pickle.loads(data["data"].tobytes())
                         break
             else:
+                self.data=self.default_data
                 self._syncData()
         else:
             if os.path.exists(self.data_path):
                 self.data = pickle.load(open(self.data_path, "rb"))
             else:
+                self.data=self.default_data
                 self._syncData()
+        for index in self.default_data:
+            if not index in self.data:
+                self.data[index]=self.default_data[index]
         self.playlist=Playlist()
-        playlist_list.append(self.playlist)
+        data_obj.playlists.append(self.playlist)
     def _syncData(self):
         if db_url:
             cursor=self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -91,3 +97,12 @@ class GuildData():
         self.data["matcher_dict"].pop(pattern)
     def getPlaylist(self):
         return self.playlist
+    def getTTSChannels(self):
+        return self.data["TTSChannels"]
+    def switchTTSChannel(self, channel):
+        if channel.id in self.data["TTSChannels"]:
+            self.data["TTSChannels"].remove(channel.id)
+            return False
+        else:
+            self.data["TTSChannels"].append(channel.id)
+            return True
