@@ -107,6 +107,14 @@ async def on_member_join(member:discord.Member):
         if "on_member_join" in plist:
             txt = plist["on_member_join"][1].replace("$member",member.mention)
             await member.guild.system_channel.send(txt)
+@bot.event
+async def on_voice_state_update(member, before, after):
+    playlist = Data.getGuildData(_getGuildId(member)).getPlaylist()
+    try:
+        if len(playlist.channel.channel.members) <= 1:
+            await playlist.channel.disconnect()
+    except:
+        print("まあ、わかるよね？")
 
 """commands"""
 ## general
