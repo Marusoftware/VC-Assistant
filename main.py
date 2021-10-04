@@ -723,6 +723,33 @@ async def delete(ctx, index:Option(int, "Music Index", required=True)):
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         playlist.pop(list(playlist.keys())[index])
         await ctx.respond("Delete Music")
+#movetoend
+@bot.command(name="movetoend", aliases=["mv","m"], desecription="Move queued Music to end.")
+async def movetoend(ctx, index:int):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.send('Music is not enabled.')
+        return
+    index-=1
+    if index == 0:
+        await ctx.send("If you want to move Index 1, please use skip.")
+        return
+    if not ctx.guild.voice_client is None:
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        playlist.move_to_end(list(playlist.keys())[index])
+        await ctx.send("Music was moved!!")
+@bot.slash_command(name="move", desecription="Move queued Music to end.")
+async def movetoend(ctx, index:Option(int, "Music Index", required=True)):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await ctx.respond('Music is not enabled.')
+        return
+    index-=1
+    if index == 0:
+        await ctx.respond("If you want to move Index 1, please use skip.")
+        return
+    if not ctx.guild.voice_client is None:
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+        playlist.move_to_end(list(playlist.keys())[index])
+        await ctx.respond("Music was moved!!")
 #loop
 @bot.command(name="loop", aliases=["l"], desecription="Loop queued Music.")
 async def loop(ctx, tf:bool=None):
