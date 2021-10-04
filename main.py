@@ -1,5 +1,10 @@
 from discord import SelectOption, Option, SlashCommandOptionType, Member
-import logging, argparse, discord, random, string, re, datetime, os, ffmpeg, pyopenjtalk
+import logging, argparse, discord, random, string, re, datetime, os
+try:
+    import pyopenjtalk
+    enjtalk=True
+except:
+    enjtalk=False
 from data import Data as _Data, playlist_list
 from pytube import YouTube, Search, Playlist
 from apiclient.discovery import build
@@ -796,33 +801,33 @@ async def disconnect(ctx):
         await ctx.guild.voice_client.disconnect()
 
 ##tts
-@bot.group(name="tts", desecription="Text to Speech!!")
-async def tts(ctx):
-    if ctx.invoked_subcommand is None:
+if enjtalk:
+    @bot.group(name="tts", desecription="Text to Speech!!")
+    async def tts(ctx):
+        if ctx.invoked_subcommand is None:
+            if Data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
+                await ctx.send("TTS is now enable on this channel!!")
+            else:
+                await ctx.send("TTS is now disable on this channel!!")
+    @bot.slash_command(name="tts", desecription="Text to Speech!!")
+    async def tts(ctx):
         if Data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
-            await ctx.send("TTS is now enable on this channel!!")
+            await ctx.respond("TTS is now enable on this channel!!")
         else:
-            await ctx.send("TTS is now disable on this channel!!")
-@bot.slash_command(name="tts", desecription="Text to Speech!!")
-async def tts(ctx):
-    if Data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
-        await ctx.respond("TTS is now enable on this channel!!")
-    else:
-        await ctx.respond("TTS is now disable on this channel!!")
-async def tts_callback(message):
-    data=Data.getGuildData(_getGuildId(message))
-    if message.channel.id in data.getTTSChannels():
-        playlist=data.getPlaylist()
-        vdata=pyopenjtalk.tts(message.content)[0].tobytes()[::1013]
-        if playlist.state=="play":
-            playlist.pause()
-            for d in vdata:
-                playlist.channel.send_audio_packet(d, encode=False)
-            playlist.resume()
-        else:
-            for d in vdata:
-                playlist.channel.send_audio_packet(d, encode=False)
-            #playlist.channel.send_audio_packet(discord.FFmpegPCMAudio("/mnt/c/Users/佐藤丸生/Downloads/Queen - Don_t Stop Me Now _Official Video_.mp4").read())
+            await ctx.respond("TTS is now disable on this channel!!")
+    async def tts_callback(message):
+        data=Data.getGuildData(_getGuildId(message))
+        if message.channel.id in data.getTTSChannels():
+            playlist=data.getPlaylist()
+            vdata=pyopenjtalk.tts(message.content)[0].tobytes()[::1013]
+            if playlist.state=="play":
+                playlist.pause()
+                for d in vdata:
+                    playlist.channel.send_audio_packet(d, encode=False)
+                playlist.resume()
+            else:
+                for d in vdata:
+                    playlist.channel.send_audio_packet(d, encode=False)
 ##Run
 if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])
