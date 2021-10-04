@@ -80,11 +80,11 @@ async def Send(ctx, content, view=None, ephemeral=False):
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
 
 ##event
-#on_connect
+#on_ready
 @bot.event
 async def on_ready():
     logger.info("Login")
-#on_message
+#on_message(Matcher)
 @bot.event
 async def on_message(message: discord.Message):
     if message.author.bot: return
@@ -93,7 +93,7 @@ async def on_message(message: discord.Message):
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enTTS"):
         await tts_callback(message)
     await bot.process_commands(message)
-#on_join
+#on_join(Matcher)
 @bot.event
 async def on_member_join(member:discord.Member):
     guild=Data.getGuildData(_getGuildId(member))
@@ -107,14 +107,15 @@ async def on_member_join(member:discord.Member):
         if "on_member_join" in plist:
             txt = plist["on_member_join"][1].replace("$member",member.mention)
             await member.guild.system_channel.send(txt)
+#on_vc_state_update(Autodisconnect)
 @bot.event
 async def on_voice_state_update(member, before, after):
     playlist = Data.getGuildData(_getGuildId(member)).getPlaylist()
     try:
         if len(playlist.channel.channel.members) <= 1:
             await playlist.channel.disconnect()
-    except:
-        print("まあ、わかるよね？")
+    except AttributeError:
+        pass
 
 """commands"""
 ## general
@@ -473,8 +474,12 @@ async def play(ctx, *query):
         await ctx.send('Music is not enabled.')
         return
     if ctx.guild.voice_client is None:
-        await ctx.send("Wasn't connected to VC")
-        return
+        if ctx.author.voice is None:
+            await ctx.send("Wasn't connected to VC")
+            return
+        else:
+            await connect(ctx.author.voice.channel)
+            await ctx.send("Wasn't connected to VC. But you connected VC, So I connect there.")
     service=service_detection(query)
     if service in ["youtube","nico"]:
         msg = await ctx.reply(content=f'Prepareing playing...', mention_author=True)
@@ -518,8 +523,12 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True), servi
         await ctx.respond('Music is not enabled.', ephemeral=True)
         return
     if ctx.guild.voice_client is None:
-        await ctx.respond("Wasn't connected to VC...", ephemeral=True)
-        return
+        if ctx.author.voice is None:
+            await ctx.respond("Wasn't connected to VC")
+            return
+        else:
+            await connect(ctx.author.voice.channel)
+            await ctx.respond("Wasn't connected to VC. But you connected VC, So I connect there.")
     if service == "detect":
         service=service_detection(query)
     if service in ["youtube","nico"]:
