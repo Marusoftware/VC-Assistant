@@ -88,6 +88,9 @@ async def on_ready():
 @bot.event
 async def on_message(message: discord.Message):
     if message.author.bot: return
+    elif bot.user in message.mentions:
+        prefix=prefix_setter(bot, message)
+        await message.reply(f'Oh, It\'s me..!! My Command prefix is "{prefix}"\n If you want to see all commandlist, please type {prefix}help')
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enMatcher"):
         await matcher_callback(message)
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enTTS"):
