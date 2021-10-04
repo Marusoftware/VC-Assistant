@@ -681,7 +681,7 @@ async def showq(ctx):
         n=0
         for music in playlist:
             n+=1
-            embed.add_field(name=f'{str(n)} "{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]')
+            embed.add_field(name=f'{str(n)}"{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]', inline=False)
         await ctx.send(embed=embed)
     else:
         await ctx.send("Now, No Music(s) is in queue...")
@@ -697,7 +697,7 @@ async def showq(ctx):
         embed=Embed(title="Queue")
         for music in playlist:
             n+=1
-            embed.add_field(name=f'{str(n)} "{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]')
+            embed.add_field(name=f'{str(n)} "{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]', inline=False)
         await ctx.respond(embed=embed)
     else:
         await ctx.respond("Now, No Music(s) is in queue...")
