@@ -1,4 +1,4 @@
-from discord import SelectOption, Option, SlashCommandOptionType, Member
+from discord import SelectOption, Option, SlashCommandOptionType, Member, Embed
 import logging, argparse, discord, random, string, re, datetime, os
 try:
     import pyopenjtalk
@@ -607,9 +607,9 @@ async def pause(ctx):
     if not ctx.guild.voice_client is None:
         await ctx.respond(content=f'Pausing Music...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().pause()
-#pause
+#resume
 @bot.command(name="resume", aliases=["re"], desecription="Resume Music")
-async def pause(ctx):
+async def resume(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.send('Music is not enabled.')
         return
@@ -617,7 +617,7 @@ async def pause(ctx):
         await ctx.send(content=f'Resuming Music...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().resume()
 @bot.slash_command(name="resume", desecription="Resume Music")
-async def pause(ctx):
+async def resume(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.')
         return
@@ -676,13 +676,13 @@ async def showq(ctx):
         return
     playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
     if len(playlist.playlist)!=0:
-        text=f'Index Title Length\n'
         playlist=playlist.playlist
+        embed=Embed(title="Queue")
         n=0
         for music in playlist:
             n+=1
-            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}\n'
-        await ctx.send(text)
+            embed.add_field(name=f'{str(n)} "{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]')
+        await ctx.send(embed=embed)
     else:
         await ctx.send("Now, No Music(s) is in queue...")
 @bot.slash_command(name="showq", desecription="Show queued Music.")
@@ -692,13 +692,13 @@ async def showq(ctx):
         return
     playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
     if len(playlist.playlist)!=0:
-        text=f'Index Title Length\n'
         playlist=playlist.playlist
         n=0
+        embed=Embed(title="Queue")
         for music in playlist:
             n+=1
-            text+=f'{str(n)} "{playlist[music]["title"]}" {StoTime(playlist[music]["length"])}\n'
-        await ctx.respond(text)
+            embed.add_field(name=f'{str(n)} "{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]')
+        await ctx.respond(embed=embed)
     else:
         await ctx.respond("Now, No Music(s) is in queue...")
 #del
