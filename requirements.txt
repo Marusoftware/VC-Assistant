@@ -6,3 +6,4 @@ https://github.com/tasuren/niconico_dl/releases/download/v2.2.4/niconico_dl-2.2.
 psycopg2-binary
 ffmpeg-python
 pyopenjtalk
+scipy

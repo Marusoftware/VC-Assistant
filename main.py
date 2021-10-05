@@ -1,7 +1,7 @@
 from discord import SelectOption, Option, SlashCommandOptionType, Member, Embed
-import logging, argparse, discord, random, string, re, datetime, os
+import logging, argparse, discord, random, string, re, datetime, os, io
 try:
-    import pyopenjtalk
+    import pyopenjtalk, numpy
     enjtalk=True
 except:
     enjtalk=False
@@ -11,6 +11,7 @@ from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View
 from discord.ext import commands
+from scipy.io import wavfile
 
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
@@ -819,15 +820,27 @@ if enjtalk:
         data=Data.getGuildData(_getGuildId(message))
         if message.channel.id in data.getTTSChannels():
             playlist=data.getPlaylist()
-            vdata=pyopenjtalk.tts(message.content)[0].tobytes()[::1013]
+            vdata, vsr=pyopenjtalk.tts(message.content)
+            bio=io.BytesIO()
+            wavfile.write(bio, vsr, vdata.astype(numpy.int16))
+            dpy_pcm=discord.PCMAudio(bio)
             if playlist.state=="play":
                 playlist.pause()
-                for d in vdata:
-                    playlist.channel.send_audio_packet(d, encode=False)
+                while True:
+                    d=dpy_pcm.read()
+                    if d == b'':
+                        break
+                    else:
+                        playlist.channel.send_audio_packet(d, encode=False)
                 playlist.resume()
             else:
-                for d in vdata:
-                    playlist.channel.send_audio_packet(d, encode=False)
+                while True:
+                    d=dpy_pcm.read()
+                    if d == b'':
+                        break
+                    else:
+                        playlist.channel.send_audio_packet(d, encode=False)
+if not enjtalk: logger.warn("Jtalk is not enabled.")
 ##Run
 if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])
