@@ -2,6 +2,7 @@ from discord import SelectOption, Option, SlashCommandOptionType, Member, Embed
 import logging, argparse, discord, random, string, re, datetime, os, io
 try:
     import pyopenjtalk, numpy
+    from scipy.io import wavfile
     enjtalk=True
 except:
     enjtalk=False
@@ -11,7 +12,6 @@ from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View
 from discord.ext import commands
-from scipy.io import wavfile
 
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
