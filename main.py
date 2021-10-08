@@ -237,11 +237,11 @@ async def add(ctx, pattern:str, check_type:str="search", text:str="Hello World")
         Data.getGuildData(_getGuildId(ctx)).addMatcherDict(pattern, check_type, text)
     await ctx.send("Add word to dict.")
 @matcher.command("del", desecription="Del word from dict.")
-async def delete(ctx, pattern:str):
+async def delete(ctx, pattern:str, check_type:str="search"):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
         await ctx.send('Matcher is not enabled.')
         return
-    Data.getGuildData(_getGuildId(ctx)).delMatcherDict(pattern)
+    Data.getGuildData(_getGuildId(ctx)).delMatcherDict(pattern, check_type)
     await ctx.send("Del word from dict.")
 @matcher.command("list", desecription="Del word from dict.")
 async def matcher_list(ctx):
@@ -253,7 +253,7 @@ async def matcher_list(ctx):
     i=0
     for pattern in plist:
         i+=1
-        text+=f'{i} {pattern} {plist[pattern][0]} {plist[pattern][1]}\n'
+        text+=f'{i} {pattern.pattern if type(pattern) == re.Pattern else pattern} {plist[pattern][0]} {plist[pattern][1]}\n'
     await ctx.send(text)
 @bot.slash_command(name="matcher", desecription="Setting Matcher Feature.")
 async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["add","del","list"]), pattern:Option(str, "Pattern(regax)", required=False), check_type:Option(str, "Check Type",choices=["match","search","fullmatch","event"], required=False, default="search"), text:Option(str, "Text", required=False)):
@@ -262,7 +262,7 @@ async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choic
         return
     if subcommand=="add":
         if pattern is None or check_type is None or text is None:
-            await ctx.respond("You must set pattern, check_type and text option.", ephemeral=True)
+            await ctx.respond("You must set pattern and text option.", ephemeral=True)
         else:
             try:
                 if check_type != "event":
@@ -277,7 +277,7 @@ async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choic
             await ctx.respond("You must set pattern option.", ephemeral=True)
         else:
             try:
-                Data.getGuildData(_getGuildId(ctx)).addMatcherDict(pattern)
+                Data.getGuildData(_getGuildId(ctx)).delMatcherDict(pattern, check_type)
             except IndexError:
                 await ctx.respond("No such pattern found.", ephemeral=True)
             else:
@@ -288,7 +288,7 @@ async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choic
         i=0
         for pattern in plist:
             i+=1
-            text+=f'{i} {pattern} {plist[pattern][0]} {plist[pattern][1]}\n'
+            text+=f'{i} {pattern.pattern if type(pattern) == re.Pattern else pattern} {plist[pattern][0]} {plist[pattern][1]}\n'
         await ctx.respond(text)
 
 ##Music

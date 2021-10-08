@@ -93,8 +93,15 @@ class GuildData():
             self.data["matcher_dict"]["on_"+pattern]=(check_type, text)
         else:
             self.data["matcher_dict"][pattern]=(check_type, text)
-    def delMatcherDict(self, pattern):
-        self.data["matcher_dict"].pop(pattern)
+        self._syncData()
+    def delMatcherDict(self, pattern, check_type):
+        if check_type == "event":
+            self.data["matcher_dict"].pop(pattern)
+        else:
+            for pt in self.data["matcher_dict"]:
+                if pt.pattern == pattern:
+                    self.data["matcher_dict"].pop(pt)
+                    break
     def getPlaylist(self):
         return self.playlist
     def getTTSChannels(self):
