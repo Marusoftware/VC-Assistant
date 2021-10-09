@@ -411,7 +411,7 @@ def stop_callback(self, data):
 def resume_callback(self):
     self.channel.resume()
 def play_callback(self, data):
-    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"))
+    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"), after=self.next)
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel, max_values=1):
         super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
@@ -840,7 +840,7 @@ if enjtalk:
                         break
                     else:
                         playlist.channel.send_audio_packet(d, encode=False)
-if not enjtalk: logger.warn("Jtalk is not enabled.")
+if not enjtalk: logger.warning("Jtalk is not enabled.")
 ##Run
 if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])

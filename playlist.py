@@ -50,74 +50,42 @@ class Playlist():
         self.pause_callback=pause_callback
         self.stop_callback=stop_callback
         self.resume_callback=resume_callback
-    def watcher(self):
-        while 1:
-            if len(self.playlist) != 0:
-                data=list(self.playlist.values())[0]
-            else:
-                break
-            if self.state == "playing":
-                self.stopwatch.clear()
-                self.play_callback(self, data)
-                self.stopwatch.start()
-                self.state = "play"
-            elif self.state == "skipping":
-                if len(self.playlist)!=0:
-                    self.stop_callback(self, data)
-                    self.playlist.pop(data["title"])
-                    threading.Thread(target=self._delfile, args=[data["path"]]).start()
-                    self.state="playing"
-                else:
-                    self.state="stoping"
-            elif self.state == "pausing":
-                self.pause_callback(self)
-                self.stopwatch.stop()
-                self.state="pause"
-                while self.state == "pause":
-                    time.sleep(0.1)
-                if self.state == "resuming":
-                    self.resume_callback(self)
-                    self.stopwatch.start()
-                    self.state="play"
-                else:
-                    pass
-            elif self.state == "stoping":
-                self.stopwatch.stop()
-                self.stop_callback(self, data)
-                self.playlist.pop(data["title"])
-                threading.Thread(target=self._delfile, args=[data["path"]]).start()
-                self.state="stop"
-            elif data["length"]+1 <= self.stopwatch.getTime() or not self.channel.is_playing():
-                print("next",self.playlist)
-                if len(self.playlist)>1:
-                    if self.loop:
-                        self.playlist.move_to_end(data["title"])
-                    else:
-                        self.playlist.pop(data["title"])
-                        threading.Thread(target=self._delfile, args=[data["path"]]).start()
-                    self.state="playing"
-                elif len(self.playlist)==1:
-                    if self.loop:
-                        self.state="playing"
-                    else:
-                        self.state="stoping"
-                else:
-                    print("fmm...")
-            time.sleep(0.1)
     def add(self, length, title, path, user, nico=None):
         self.playlist[title]={"title":title, "length":length, "path":path, "nico":nico, "user":user}
     def play(self):
-        self.thread=threading.Thread(target=self.watcher)
-        self.state="playing"
-        self.thread.start()
+        if len(self.playlist) != 0:
+            data=list(self.playlist.values())[0]
+            self.stopwatch.clear()
+            self.play_callback(self, data)
+            self.stopwatch.start()
+            self.state = "play"
+        else:
+            pass
     def skip(self):
-        self.state="skipping"
+        if len(self.playlist)!=0:
+            data=list(self.playlist.values())[0]
+            self.stop_callback(self, data)
+            self.playlist.pop(data["title"])
+            threading.Thread(target=self._delfile, args=[data["path"]]).start()
+            self.play()
+        else:
+            self.stop()
     def stop(self):
-        self.state="stoping"
+        if len(self.playlist)!=0:
+            data=list(self.playlist.values())[0]
+            self.stopwatch.stop()
+            self.stop_callback(self, data)
+            self.playlist.clear()
+            threading.Thread(target=self._delfile, args=[data["path"]]).start()
+            self.state="stop"
     def pause(self):
-        self.state="pausing"
+        self.pause_callback(self)
+        self.stopwatch.stop()
+        self.state="pause"
     def resume(self):
-        self.state="resuming"
+        self.resume_callback(self)
+        self.stopwatch.start()
+        self.state="play"
     def _delfile(self, path):
         while os.path.exists(path):
             try:
@@ -126,6 +94,22 @@ class Playlist():
                 time.sleep(1)
             else:
                 break
+    def next(self, exp):
+        if len(self.playlist)>1:
+            data=list(self.playlist.values())[0]
+            if self.loop:
+                self.playlist.move_to_end(data["title"])
+            else:
+                self.playlist.pop(data["title"])
+                threading.Thread(target=self._delfile, args=[data["path"]]).start()
+            self.play()
+        elif len(self.playlist)==1:
+            if self.loop:
+                self.play()
+            else:
+                self.stop()
+        else:
+            pass
     def cleanup(self):
         for i in self.playlist:
             if os.path.exists(self.playlist[i]["path"]): os.remove(self.playlist[i]["path"])
