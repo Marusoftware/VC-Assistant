@@ -502,8 +502,14 @@ async def play(ctx, *query):
     elif service in ["playlist-youtube"]:
         urllist=await get_playlist(ctx, query, service)
         if urllist:
+            n=int(len(urllist)/25)
             view=View(timeout=None)
-            view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client, max_values=len(urllist)))
+            for i in range(n):
+                view.add_item(MusicSelction(custom_id="test"+str(i), urllist=urllist[i*25:i*25+25], channel=ctx.guild.voice_client, max_values=25))
+                print(urllist[i*25:i*25+25])
+            if not len(urllist)%25 == 0:
+                view.add_item(MusicSelction(custom_id="test", urllist=urllist[len(urllist)%25*-1:], channel=ctx.guild.voice_client, max_values=len(urllist)%25))
+                print(urllist[len(urllist)%25*-1:])
             await ctx.send("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await ctx.send("Error in Searching Music.")
@@ -553,7 +559,11 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True), servi
         urllist=await get_playlist(ctx, query, service)
         if urllist:
             view=View(timeout=None)
-            view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client, max_values=len(urllist)))
+            n=int(len(urllist)/25)
+            for i in range(n):
+                view.add_item(MusicSelction(custom_id="test"+str(i), urllist=urllist[i*25:i*25+25], channel=ctx.guild.voice_client, max_values=25))
+            if not len(urllist)%25 == 0:
+                view.add_item(MusicSelction(custom_id="test", urllist=urllist[len(urllist)%25*-1:], channel=ctx.guild.voice_client, max_values=len(urllist)%25))
             await ctx.respond("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await ctx.respond("Error in Searching Music.")
