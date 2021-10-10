@@ -353,15 +353,18 @@ async def search_music(ctx, query, service):
                         title=title[0:90]
                     urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
             return urllist
-async def get_playlist(ctx, query, service):
+async def get_playlist(ctx, query, service, select=True):
     urllist=[]
-    if service == "playlist-youtube":
+    if service in ["playlist-youtube","playlist-youtube-all"]:
         pl=Playlist(query)
         for item in pl.videos:
             title=item.title
             if len(title)>90:
                 title=title[0:90]
-            urllist.append(SelectOption(label=title,value=item.watch_url))
+            if select:
+                urllist.append(SelectOption(label=title,value=item.watch_url))
+            else:
+                urllist.append(item.watch_url)
         return urllist
 def play_music(url, channel, user, service="detect", stream=False):
     if service == "detect":
@@ -371,9 +374,9 @@ def play_music(url, channel, user, service="detect", stream=False):
         #stream=yt.streams.filter(only_audio=True)[0]
         st=yt.streams.get_audio_only()
         if stream:
-            path=st.url
+            path=st
         else:
-            path=st.download(output_path=argv.path)
+            path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, st.title, path, user)
     elif service == "nico":
         nico=NicoNicoVideo(url=url)
@@ -398,6 +401,8 @@ def service_detection(url):
         return "playlist-youtube"
     elif re.match("nico:(\S)+", url):
         return "search-nico"
+    elif re.match("all:(\S)+", url):
+        return "playlist-youtube-all"
     elif "file" in url:
         return "file"
     else:
@@ -411,18 +416,23 @@ def stop_callback(self, data):
 def resume_callback(self):
     self.channel.resume()
 def play_callback(self, data):
-    self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"), after=self.next)
+    if type(data["path"]) == str: 
+        self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"), after=self.next)
+    else:
+        path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5))
+        self.playlist[list(self.playlist.keys())[0]]["path"]=path
+        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af dynaudnorm"), after=self.next)
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel, max_values=1):
         super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
         self.urllist=urllist
     async def callback(self, interaction):
-        if len(self.values) != 1:
+        if len(self.values) == 1:
+            await interaction.message.edit(content=f'Prepareing playing "{self.values[0]}"...', view=None)
+        else:
             await interaction.message.edit(content=f'Prepareing playing Musics...', view=None)
         text=""
         for value in self.values:
-            if len(self.values) == 1:
-                await interaction.message.edit(content=f'Prepareing playing "{value}"...', view=None)
             status=play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1)
             if status == 0:
                 text+=f'Start playing "{value}".\n'
@@ -430,7 +440,7 @@ class MusicSelction(Select):
                 text+=f'Added to queue "{value}".\n'
             else:
                 text+=f'Oh...Some Error occured...\n'
-            await interaction.message.edit(content=text)
+        await interaction.message.edit(content=text)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel:discord.VoiceChannel=None):
@@ -513,6 +523,23 @@ async def play(ctx, *query):
             await ctx.send("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await ctx.send("Error in Searching Music.")
+    elif service in ["playlist-youtube-all"]:
+        query=query.replace("all:","")
+        urllist=await get_playlist(ctx, query, service, select=False)
+        if len(urllist) == 1:
+            message = await ctx.send(content=f'Prepareing playing "{urllist[0]}"...', view=None)
+        else:
+            message = await ctx.send(content=f'Prepareing playing Musics...', view=None)
+        text=""
+        for value in urllist:
+            status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1)
+            if status == 0:
+                text+=f'Start playing "{value}".\n'
+            elif status == 1:
+                text+=f'Added to queue "{value}".\n'
+            else:
+                text+=f'Oh...Some Error occured...\n'
+            await message.edit(content=text)
     elif service == "file":
         if len(ctx.message.attachments) != 0:
             file=ctx.message.attachments[0]
@@ -533,7 +560,7 @@ async def play(ctx, *query):
         else:
             await ctx.send("Error in Searching Music.")
 @bot.slash_command(name="play", desecription="join to VC")
-async def play(ctx, query:Option(str, "Serch text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico"], default="detect")):
+async def play(ctx, query:Option(str, "Search text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico","playlist-youtube-all"], default="detect")):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await ctx.respond('Music is not enabled.', ephemeral=True)
         return
@@ -567,6 +594,23 @@ async def play(ctx, query:Option(str, "Serch text or url", required=True), servi
             await ctx.respond("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await ctx.respond("Error in Searching Music.")
+    elif service in ["playlist-youtube-all"]:
+        query=query.replace("all:","")
+        urllist=await get_playlist(ctx, query, service, select=False)
+        if len(urllist) == 1:
+            message = await ctx.respond(content=f'Prepareing playing "{urllist[0]}"...', view=None)
+        else:
+            message = await ctx.respond(content=f'Prepareing playing Musics...', view=None)
+        text=""
+        for value in urllist:
+            status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1)
+            if status == 0:
+                text+=f'Start playing "{value}".\n'
+            elif status == 1:
+                text+=f'Added to queue "{value}".\n'
+            else:
+                text+=f'Oh...Some Error occured...\n'
+            await message.edit(content=text)
     elif service == "file":
         if len(ctx.message.attachments) != 0:
             file=ctx.message.attachments[0]
