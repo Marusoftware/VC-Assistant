@@ -74,13 +74,17 @@ def state2emoji(state):
         print(state)
         return ":grey_question:"
 #Send
-async def Send(ctx, content, view=None, ephemeral=False):
+async def Send(ctx, content="", view=None, ephemeral=False, embed=None):
+    options={}
+    if not view is None: options["view"]=view
+    if not embed is None: options["embed"]=embed
     if type(ctx) == commands.Context:
         ctx:commands.Context=ctx
-        await ctx.send(content=content, view=view)
+        await ctx.send(content=content, **options)
     elif type(ctx) == discord.app.InteractionContext:
         ctx:discord.app.InteractionContext=ctx
-        await ctx.send(content=content, view=view, ephemeral=ephemeral)
+        
+        await ctx.send(content=content, ephemeral=ephemeral, **options)
 
 ##bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
@@ -295,7 +299,10 @@ async def matcher(ctx, subcommand:Option(str, "Subcommand", required=True, choic
 #utils
 async def connect(channel):
     try:
-        protocol:discord.VoiceProtocol=await channel.connect()
+        if channel.guild.voice_client is None:
+            protocol:discord.VoiceProtocol=await channel.connect()
+        else:
+            await channel.guild.voice_client.move_to(channel)
     except:
         return False
     else:
@@ -371,7 +378,6 @@ def play_music(url, channel, user, service="detect", stream=False):
         service=service_detection(url)
     if service == "youtube":
         yt = YouTube(url=url)
-        #stream=yt.streams.filter(only_audio=True)[0]
         st=yt.streams.get_audio_only()
         if stream:
             path=st
@@ -445,46 +451,27 @@ class MusicSelction(Select):
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel:discord.VoiceChannel=None):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.', ephemeral=True)
         return
     if channel is None:
-        if type(ctx.author) == Member:
+        if isinstance(ctx.author, Member):
             if ctx.author.voice is None:
-                await ctx.send("Please assign or enter to VC.")
+                await Send(ctx, "Please assign or enter to VC.", ephemeral=True)
             else:
                 if not await connect(ctx.author.voice.channel):
-                    await ctx.send("Sorry... Can't connect to VC....")
+                    await Send(ctx, "Sorry... Can't connect to VC....", ephemeral=True)
                 else:
-                    await ctx.send("Connected to VC")
+                    await Send(ctx, "Connected to VC")
         else:
-            await ctx.send("Now no support for DM...Sorry...")
+            await Send(ctx, "Now no support for DM...Sorry...", ephemeral=True)
     else:
         if not await connect(channel):
-            await ctx.send("Sorry... Can't connect to VC....")
+            await Send(ctx, "Sorry... Can't connect to VC....")
         else:
-            await ctx.send("Connected to VC")
+            await Send(ctx, "Connected to VC")
 @bot.slash_command(name="join", desecription="join to VC")
-async def join(ctx, channel:Option(SlashCommandOptionType.channel, "VC", required=False, default=None)):
-    print(type(ctx))
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.', ephemeral=True)
-        return
-    if channel is None:
-        if type(ctx.author) == Member:
-            if ctx.author.voice is None:
-                await ctx.respond("Please assign or enter to VC.")
-            else:
-                if not await connect(ctx.author.voice.channel):
-                    await ctx.respond("Sorry... Can't connect to VC....")
-                else:
-                    await ctx.respond("Connected to VC")
-        else:
-            await ctx.respond("Now no support for DM...Sorry...")
-    else:
-        if not await connect(channel):
-            await ctx.respond("Sorry... Can't connect to VC....")
-        else:
-            await ctx.respond("Connected to VC")
+async def join_sl(ctx, channel:Option(SlashCommandOptionType.channel, "VC", required=False, default=None)):
+    await join(ctx, channel)
 #play
 @bot.command(name="play", aliases=["p"], desecription="Play in VC")
 async def play(ctx, *query):
@@ -727,35 +714,24 @@ async def nowplaying(ctx):
 @bot.command(name="showq", aliases=["q"], desecription="Show queued Music.")
 async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx,'Music is not enabled.')
         return
     playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
     if len(playlist.playlist)!=0:
         playlist=playlist.playlist
-        embed=Embed(title="Queue")
+        embed=Embed(title="Queue", description=f'Now, {len(playlist)} musics are in queue. Total time is {StoTime(sum([playlist[m]["length"] for m in playlist]))}.')
         n=0
         for music in playlist:
             n+=1
             embed.add_field(name=f'{str(n)}"{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]', inline=False)
-        await ctx.send(embed=embed)
+        if len(playlist) > 25:
+            embed.set_footer(text=f'{len(playlist)-25} musics are after these.')
+        await Send(ctx, embed=embed)
     else:
-        await ctx.send("Now, No Music(s) is in queue...")
+        await Send(ctx, "Now, No Music(s) is in queue...")
 @bot.slash_command(name="showq", desecription="Show queued Music.")
-async def showq(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
-    if len(playlist.playlist)!=0:
-        playlist=playlist.playlist
-        n=0
-        embed=Embed(title="Queue")
-        for music in playlist:
-            n+=1
-            embed.add_field(name=f'{str(n)} "{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]', inline=False)
-        await ctx.respond(embed=embed)
-    else:
-        await ctx.respond("Now, No Music(s) is in queue...")
+async def showq_sl(ctx):
+    await showq(ctx)
 #del
 @bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music.")
 async def delete(ctx, index:int):
