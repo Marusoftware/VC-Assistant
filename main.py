@@ -811,25 +811,19 @@ async def loop(ctx, tf:Option(bool, "Music Index", required=False, default=None)
     await ctx.respond(f'Loop was now {"enabled" if playlist.loop else "disabled"}!!')
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
-async def disconnect(ctx):
+async def dc(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        if ctx.guild.voice_client.is_playing():
-            ctx.guild.voice_client.stop()
-        await ctx.send(content=f'Disconnect from VC')
+        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+        playlist.stop()
+        playlist.cleanup()
         await ctx.guild.voice_client.disconnect()
+        await Send(ctx, content=f'Disconnect from VC')
 @bot.slash_command(name="disconnect", desecription="Disconnect from VC")
-async def disconnect(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    if not ctx.guild.voice_client is None:
-        if ctx.guild.voice_client.is_playing():
-            ctx.guild.voice_client.stop()
-        await ctx.respond(content=f'Disconnect from VC')
-        await ctx.guild.voice_client.disconnect()
+async def dc_sl(ctx):
+    await dc(ctx)
 
 ##tts
 if enjtalk:
