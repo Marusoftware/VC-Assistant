@@ -1,5 +1,5 @@
 from discord import SelectOption, Option, SlashCommandOptionType, Member, Embed
-import logging, argparse, discord, random, string, re, datetime, os, io
+import logging, argparse, discord, random, string, re, datetime, os, io, traceback
 try:
     import pyopenjtalk, numpy
     from scipy.io import wavfile
@@ -106,9 +106,8 @@ async def on_message(message: discord.Message):
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enTTS"):
         try:
             await tts_callback(message)
-        except:
-            import traceback
-            logger.error(traceback.format_exc())
+        except Exception as e:
+            logger.exception("TTS Error:")
     await bot.process_commands(message)
 #on_join(Matcher)
 @bot.event
@@ -135,6 +134,10 @@ async def on_voice_state_update(member, before, after):
             playlist.move2 = False
     except AttributeError:
         pass
+@bot.event
+async def on_command_error(ctx, error):
+    logger.error(f'Error:\n{"".join(list(traceback.TracebackException.from_exception(error).format()))}')
+    await Send(ctx, "Sorry... Error was huppened...")
 
 """commands"""
 ## general
