@@ -104,7 +104,11 @@ async def on_message(message: discord.Message):
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enMatcher"):
         await matcher_callback(message)
     if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enTTS"):
-        await tts_callback(message)
+        try:
+            await tts_callback(message)
+        except:
+            import traceback
+            logger.error(traceback.format_exc())
     await bot.process_commands(message)
 #on_join(Matcher)
 @bot.event
@@ -125,8 +129,10 @@ async def on_member_join(member:discord.Member):
 async def on_voice_state_update(member, before, after):
     playlist = Data.getGuildData(_getGuildId(member)).getPlaylist()
     try:
-        if len(playlist.channel.channel.members) <= 1:
+        if len(playlist.channel.channel.members) <= 1 and not playlist.move2:
             await playlist.channel.disconnect()
+        else:
+            playlist.move2 = False
     except AttributeError:
         pass
 
@@ -824,7 +830,17 @@ async def dc(ctx):
 @bot.slash_command(name="disconnect", desecription="Disconnect from VC")
 async def dc_sl(ctx):
     await dc(ctx)
-
+#move_to
+@bot.command(name="move2", aliases=["mvt"], desecription="Move to Another VC")
+async def mvt(ctx, channel:discord.VoiceChannel):
+    playlist = Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    playlist.move2=True
+    await ctx.author.move_to(channel)
+    await ctx.guild.voice_client.move_to(channel)
+    await Send(ctx, "Moved....")
+@bot.slash_command(name="move2", desecription="Move to Another VC")
+async def mvt_sl(ctx, channel:Option(SlashCommandOptionType.channel, "VC", required=True)):
+    await mvt(ctx, channel)
 ##tts
 if enjtalk:
     @bot.group(name="tts", desecription="Text to Speech!!")

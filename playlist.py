@@ -46,6 +46,7 @@ class Playlist():
         self.playlist=OrderedDict()
         self.channel=None
         self.loop=False
+        self.move2=False
         self.play_callback=play_callback
         self.pause_callback=pause_callback
         self.stop_callback=stop_callback
