@@ -704,9 +704,11 @@ async def np(ctx):
     if len(playlist.playlist)!=0:
         music=list(playlist.playlist.keys())[0]
         embed=Embed(title=playlist.playlist[music]["title"], description=f'Now, Playing...')
-        embed.add_field(name=f'{state2emoji(playlist.state)}{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}', value=(":repeat:" if playlist.loop else ""))
+        embed.add_field(name=f'{state2emoji(playlist.state)}', value=StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"]))
         user=playlist.playlist[music]["user"]
         embed.set_author(name=user, icon_url=user.avatar)
+        if playlist.loop
+            embed.set_footer(":repeat:")
         await Send(ctx, embed=embed)
     else:
         await Send(ctx, "Now, No Music is playing...")
