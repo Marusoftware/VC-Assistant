@@ -134,6 +134,7 @@ async def on_voice_state_update(member, before, after):
             playlist.move2 = False
     except AttributeError:
         pass
+#on_error
 @bot.event
 async def on_command_error(ctx, error):
     logger.error(f'Error:\n{"".join(list(traceback.TracebackException.from_exception(error).format()))}')
@@ -694,36 +695,29 @@ async def stop(ctx):
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().stop()
 #nowplaying
 @bot.command(name="nowplaying", aliases=["np"], desecription="Show playing Music.")
-async def nowplaying(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+async def np(ctx):
+    data=Data.getGuildData(_getGuildId(ctx))
+    if not data.getProperty("enMusic"):
+        await Send('Music is not enabled.', ephemeral=True)
         return
-    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    playlist=data.getPlaylist()
     if len(playlist.playlist)!=0:
         music=list(playlist.playlist.keys())[0]
+        embed=Embed(title=playlist.playlist[music]["title"], description=f'Now, Playing...')
+        embed.add_field(name=f'{state2emoji(playlist.state)}{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}', value=(":repeat:" if playlist.loop else ""))
         user=playlist.playlist[music]["user"]
-        user=user.name if user.nick is None else user.nick
-        await ctx.send(content=f'Title:{playlist.playlist[music]["title"]}\n{state2emoji(playlist.state)}{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}{":repeat:" if playlist.loop else ""}\nRequested by {user}')
+        embed.set_author(name=user, icon_url=user.avatar)
+        await Send(ctx, embed=embed)
     else:
-        await ctx.send("Now, No Music is playing...")
+        await Send(ctx, "Now, No Music is playing...")
 @bot.slash_command(name="nowplaying", desecription="Show playing Music.")
-async def nowplaying(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
-    if len(playlist.playlist)!=0:
-        music=list(playlist.playlist.keys())[0]
-        user=playlist.playlist[music]["user"]
-        user=user.name if user.nick is None else user.nick
-        await ctx.send(content=f'Title:{playlist.playlist[music]["title"]}\n{state2emoji(playlist.state)}{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}{":repeat:" if playlist.loop else ""}\nRequested by {user}')
-    else:
-        await ctx.respond("Now, No Music is playing...")
+async def np_sl(ctx):
+    await np(ctx)
 #showq
 @bot.command(name="showq", aliases=["q"], desecription="Show queued Music.")
 async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await Send(ctx,'Music is not enabled.')
+        await Send(ctx,'Music is not enabled.', ephemeral=True)
         return
     playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
     if len(playlist.playlist)!=0:
@@ -734,7 +728,7 @@ async def showq(ctx):
             n+=1
             embed.add_field(name=f'{str(n)}"{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]', inline=False)
         if len(playlist) > 25:
-            embed.set_footer(text=f'{len(playlist)-25} musics are after these.')
+            embed.set_footer(text=f'{len(playlist)-25} musics are after these.{":repeat:" if playlist.loop else ""}')
         await Send(ctx, embed=embed)
     else:
         await Send(ctx, "Now, No Music(s) is in queue...")
