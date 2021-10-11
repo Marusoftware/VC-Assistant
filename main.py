@@ -707,7 +707,7 @@ async def np(ctx):
         embed.add_field(name=f'{state2emoji(playlist.state)}', value=StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"]))
         user=playlist.playlist[music]["user"]
         embed.set_author(name=user, icon_url=user.avatar)
-        if playlist.loop
+        if playlist.loop:
             embed.set_footer(":repeat:")
         await Send(ctx, embed=embed)
     else:
