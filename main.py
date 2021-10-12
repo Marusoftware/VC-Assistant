@@ -351,8 +351,7 @@ async def search_music(ctx, query, service):
         key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
         if key == "none":
             yts=Search(query=query).results
-            for i in range(5):
-                yt=yts[i]
+            for yt in yts:
                 title=yt.title
                 if len(title)>90:
                     title=title[0:90]
@@ -703,7 +702,7 @@ async def np(ctx):
     playlist=data.getPlaylist()
     if len(playlist.playlist)!=0:
         music=list(playlist.playlist.keys())[0]
-        embed=Embed(title=playlist.playlist[music]["title"], description=f'Now, Playing...')
+        embed=Embed(title=playlist.playlist[music]["title"])
         embed.add_field(name=f'{state2emoji(playlist.state)}', value=StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"]))
         user=playlist.playlist[music]["user"]
         embed.set_author(name=user, icon_url=user.avatar)
