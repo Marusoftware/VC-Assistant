@@ -137,6 +137,7 @@ async def on_voice_state_update(member, before, after):
 #on_error
 @bot.event
 async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound): return
     logger.error(f'Error:\n{"".join(list(traceback.TracebackException.from_exception(error).format()))}')
     await Send(ctx, "Sorry... Error was huppened...")
 
@@ -319,9 +320,6 @@ async def connect(channel):
         playlist=Data.getGuildData(_getGuildId(channel)).getPlaylist()
         playlist.channel=channel.guild.voice_client
         playlist.play_callback=play_callback
-        playlist.pause_callback=pause_callback
-        playlist.stop_callback=stop_callback
-        playlist.resume_callback=resume_callback
         return True
 async def search_music(ctx, query, service):
     urllist=[]
@@ -407,6 +405,13 @@ def play_music(url, channel, user, service="detect", stream=False):
     else:
         Data.getGuildData(_getGuildId(channel)).getPlaylist().play()
         return 0
+def play_callback(self, data):
+    if type(data["path"]) == str: 
+        self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"), after=self.next)
+    else:
+        path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5))
+        self.playlist[list(self.playlist.keys())[0]]["path"]=path
+        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af dynaudnorm"), after=self.next)
 def service_detection(url):
     if re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
         return "youtube"
@@ -422,21 +427,6 @@ def service_detection(url):
         return "file"
     else:
         return "search-youtube"
-def pause_callback(self):
-    self.channel.pause()
-def stop_callback(self, data):
-    if not data["nico"] is None:
-        data["nico"].close()
-    self.channel.stop()
-def resume_callback(self):
-    self.channel.resume()
-def play_callback(self, data):
-    if type(data["path"]) == str: 
-        self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"), after=self.next)
-    else:
-        path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5))
-        self.playlist[list(self.playlist.keys())[0]]["path"]=path
-        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af dynaudnorm"), after=self.next)
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel, max_values=1):
         super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
@@ -702,8 +692,7 @@ async def np(ctx):
     playlist=data.getPlaylist()
     if len(playlist.playlist)!=0:
         music=list(playlist.playlist.keys())[0]
-        embed=Embed(title=playlist.playlist[music]["title"])
-        embed.add_field(name=f'{state2emoji(playlist.state)}', value=StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"]))
+        embed=Embed(title=playlist.playlist[music]["title"], description=f'{state2emoji(playlist.state)}{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}')
         user=playlist.playlist[music]["user"]
         embed.set_author(name=user, icon_url=user.avatar)
         if playlist.loop:

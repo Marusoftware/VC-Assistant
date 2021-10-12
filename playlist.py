@@ -66,9 +66,6 @@ class Playlist():
         if len(self.playlist)!=0:
             data=list(self.playlist.values())[0]
             self.stop_callback(self, data)
-            self.playlist.pop(data["title"])
-            threading.Thread(target=self._delfile, args=[data["path"]]).start()
-            self.play()
         else:
             self.stop()
     def stop(self):
@@ -96,6 +93,8 @@ class Playlist():
             else:
                 break
     def next(self, exp):
+        while self.channel.is_playing():
+            time.sleep(0.1)
         if len(self.playlist)>1:
             data=list(self.playlist.values())[0]
             if self.loop:
@@ -114,12 +113,14 @@ class Playlist():
     def cleanup(self):
         for i in self.playlist:
             if os.path.exists(self.playlist[i]["path"]): os.remove(self.playlist[i]["path"])
-        self.playlist=OrderedDict()
+        self.playlist.clear()
 def play_callback(self, data):
     pass
 def pause_callback(self):
-    pass
+    self.channel.pause()
 def stop_callback(self, data):
-    pass
+    if not data["nico"] is None:
+        data["nico"].close()
+    self.channel.stop()
 def resume_callback(self):
-    pass
+    self.channel.resume()
