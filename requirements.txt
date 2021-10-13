@@ -1,6 +1,6 @@
 git+https://github.com/Pycord-Development/pycord#egg=py-cord[voice]
-#pytube
-git+https://github.com/AlaaProg/pytube
+pytube
+#git+https://github.com/AlaaProg/pytube
 aiofiles
 google-api-python-client
 https://github.com/tasuren/niconico_dl/releases/download/v2.2.4/niconico_dl-2.2.4-py3-none-any.whl
