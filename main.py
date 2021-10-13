@@ -385,12 +385,19 @@ def play_music(url, channel, user, service="detect", stream=False):
         service=service_detection(url)
     if service == "youtube":
         yt = YouTube(url=url)
-        st=yt.streams.get_audio_only()
-        if stream:
-            path=st
-        else:
-            path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
-        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, st.title, path, user)
+        try:
+            st=yt.streams.get_audio_only()
+            if stream:
+                path=st
+            else:
+                path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
+        except:
+            opts={'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], "outtmpl":randomstr(5)+'%(title)s.%(etx)s', 'nocheckcertificate': True}
+            path=opts["outtmpl"].replace("%(title)s.%(etx)s", yt.title+".mp3")#fmm...
+            from youtube_dl import YoutubeDL
+            with YoutubeDL(opts) as ytdl:
+                ytdl.download([yt.watch_url])
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, yt.title, path, user)
     elif service == "nico":
         nico=NicoNicoVideo(url=url)
         nico.connect()
