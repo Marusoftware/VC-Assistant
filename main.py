@@ -8,6 +8,7 @@ except:
     enjtalk=False
 from data import Data as _Data, playlist_list
 from pytube import YouTube, Search, Playlist
+from pytube.exceptions import LiveStreamError
 from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View
@@ -385,12 +386,15 @@ def play_music(url, channel, user, service="detect", stream=False):
         service=service_detection(url)
     if service == "youtube":
         yt = YouTube(url=url)
+        yt.bypass_age_gate()
         try:
             st=yt.streams.get_audio_only()
             if stream:
                 path=st
             else:
                 path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
+        except LiveStreamError:
+            path=yt.streaming_data["hlsManifestUrl"]
         except:
             opts={'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], "outtmpl":randomstr(5)+'%(title)s.%(etx)s', 'nocheckcertificate': True}
             path=opts["outtmpl"].replace("%(title)s.%(etx)s", yt.title+".mp3")#fmm...
