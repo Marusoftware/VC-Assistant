@@ -715,7 +715,7 @@ async def np(ctx):
         user=playlist.playlist[music]["user"]
         embed.set_author(name=user, icon_url=user.avatar)
         if playlist.loop:
-            embed.set_footer(":repeat:")
+            embed.add_field(name=":repeat:", value="Loop was Enabled!!")
         await Send(ctx, embed=embed)
     else:
         await Send(ctx, "Now, No Music is playing...")
@@ -731,13 +731,13 @@ async def showq(ctx):
     playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
     if len(playlist.playlist)!=0:
         playlist=playlist.playlist
-        embed=Embed(title="Queue", description=f'Now, {len(playlist)} musics are in queue. Total time is {StoTime(sum([playlist[m]["length"] for m in playlist]))}.')
+        embed=Embed(title="Queue", description=f'Now, {len(playlist)} musics are in queue. Total time is {StoTime(sum([playlist[m]["length"] for m in playlist]))}.{":repeat:" if playlist.loop else ""}')
         n=0
         for music in playlist:
             n+=1
             embed.add_field(name=f'{str(n)}"{playlist[music]["title"]}"', value=f'[{StoTime(playlist[music]["length"])}]', inline=False)
         if len(playlist) > 25:
-            embed.set_footer(text=f'{len(playlist)-25} musics are after these.{":repeat:" if playlist.loop else ""}')
+            embed.set_footer(text=f'{len(playlist)-25} musics are after these.')
         await Send(ctx, embed=embed)
     else:
         await Send(ctx, "Now, No Music(s) is in queue...")
