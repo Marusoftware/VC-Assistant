@@ -418,7 +418,10 @@ def play_music(url, channel, user, service="detect", stream=False):
         return 0
 def play_callback(self, data):
     if type(data["path"]) == str: 
-        self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm"), after=self.next)
+        if ".m3u8" in data["path"]:
+            self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -hls_allow_cache 1"), after=self.next)
+        else:
+            self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm -hls_allow_cache 1"), after=self.next)
     else:
         path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5))
         self.playlist[list(self.playlist.keys())[0]]["path"]=path
