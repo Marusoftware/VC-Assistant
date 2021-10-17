@@ -58,11 +58,16 @@ def StoTime(s, length=None):
     else:
         t2=datetime.timedelta(seconds=int(length))
         text=""
-        for i in range(int((s/length)*10)):
-            text+="="
-        text+="○"
-        text=text.ljust(10, "=")
-        return f'{text} {str(t)}/{str(t2)}'
+        try:
+            for i in range(int((s/length)*10)):
+                text+="="
+        except ZeroDivisionError:
+            text="====∞===="
+            return f'{text} {str(t)}/∞(Live)'
+        else:
+            text+="○"
+            text=text.ljust(10, "=")
+            return f'{text} {str(t)}/{str(t2)}'
 #state2emoji
 def state2emoji(state):
     if state == "play":
