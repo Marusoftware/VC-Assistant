@@ -47,6 +47,7 @@ class Playlist():
         self.channel=None
         self.loop=False
         self.move2=False
+        self.skiped=False
         self.play_callback=play_callback
         self.pause_callback=pause_callback
         self.stop_callback=stop_callback
@@ -65,6 +66,7 @@ class Playlist():
     def skip(self):
         if len(self.playlist)!=0:
             data=list(self.playlist.values())[0]
+            self.skiped=True
             self.stop_callback(self, data)
         else:
             self.stop()
@@ -98,10 +100,12 @@ class Playlist():
         if len(self.playlist)>1:
             data=list(self.playlist.values())[0]
             if self.loop:
-                self.playlist.move_to_end(data["title"])
+                if self.skiped:
+                    self.playlist.move_to_end(data["title"])
             else:
                 self.playlist.pop(data["title"])
                 threading.Thread(target=self._delfile, args=[data["path"]]).start()
+            self.skiped=False
             self.play()
         elif len(self.playlist)==1:
             if self.loop:
