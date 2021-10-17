@@ -728,10 +728,10 @@ async def showq(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await Send(ctx,'Music is not enabled.', ephemeral=True)
         return
-    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
-    if len(playlist.playlist)!=0:
-        playlist=playlist.playlist
-        embed=Embed(title="Queue", description=f'Now, {len(playlist)} musics are in queue. Total time is {StoTime(sum([playlist[m]["length"] for m in playlist]))}.{":repeat:" if playlist.loop else ""}')
+    pl=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    if len(pl.playlist)!=0:
+        playlist=pl.playlist
+        embed=Embed(title="Queue", description=f'Now, {len(playlist)} musics are in queue. Total time is {StoTime(sum([playlist[m]["length"] for m in playlist]))}.{":repeat:" if pl.loop else ""}')
         n=0
         for music in playlist:
             n+=1
