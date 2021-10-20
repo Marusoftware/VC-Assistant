@@ -356,21 +356,43 @@ async def search_music(ctx, query, service):
         if key == "none":
             yts=Search(query=query).results
             for yt in yts:
+                if yt.age_restricted:
+                    continue
+                try:
+                    yt.check_availability()
+                except LiveStreamError:
+                    live="🎥"
+                else:
+                    live=None
                 title=yt.title
-                if len(title)>90:
-                    title=title[0:90]
-                urllist.append(SelectOption(label=title,value=yt.watch_url))
+                if len(yt.title)>80:
+                    title=yt.title[0:80]
+                else:
+                    title=yt.title
+                if len(yt.author)>18:
+                    channel=yt.author[0:18]
+                else:
+                    channel=yt.author
+                title=f'[{channel}]{title}'
+                urllist.append(SelectOption(label=title,value=yt.watch_url, emoji=live))
             return urllist
         else:
             youtube = build('youtube', 'v3', developerKey=key)
-            youtube_query = youtube.search().list(q=query, part='id,snippet', maxResults=5)
+            youtube_query = youtube.search().list(q=query, part='id,snippet', maxResults=5, safeSearch="strict")
             youtube_res = youtube_query.execute()
             url=youtube_res.get('items', [])
             for item in url:
                 if item['id']['kind'] == 'youtube#video':
-                    title=item["snippet"]["title"]
-                    if len(title)>90:
-                        title=title[0:90]
+                    vid_info=item["snippet"]
+                    if len(vid_info["title"])>80:
+                        title=vid_info["title"][0:80]
+                    else:
+                        title=vid_info["title"]
+                    if len(vid_info["channelTitle"])>18:
+                        channel=vid_info["channelTitle"][0:18]
+                    else:
+                        channel=vid_info["channelTitle"]
+                    title=f'[{channel}]{title}'
                     urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
             return urllist
 async def get_playlist(ctx, query, service, select=True):
@@ -393,11 +415,7 @@ def play_music(url, channel, user, service="detect", stream=False):
         yt = YouTube(url=url)
         yt.bypass_age_gate()
         try:
-            st=yt.streams.get_audio_only()
-            if stream:
-                path=st
-            else:
-                path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
+            yt.check_availability()
         except LiveStreamError:
             path=yt.streaming_data["hlsManifestUrl"]
         except:
@@ -406,6 +424,12 @@ def play_music(url, channel, user, service="detect", stream=False):
             from youtube_dl import YoutubeDL
             with YoutubeDL(opts) as ytdl:
                 ytdl.download([yt.watch_url])
+        else:
+            st=yt.streams.get_audio_only()
+            if stream:
+                path=st
+            else:
+                path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, yt.title, path, user)
     elif service == "nico":
         nico=NicoNicoVideo(url=url)
