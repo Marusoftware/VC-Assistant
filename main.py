@@ -413,7 +413,7 @@ def play_music(url, channel, user, service="detect", stream=False):
         service=service_detection(url)
     if service == "youtube":
         yt = YouTube(url=url)
-        yt.bypass_age_gate()
+        #yt.bypass_age_gate()
         try:
             yt.check_availability()
         except LiveStreamError:
