@@ -356,6 +356,8 @@ async def search_music(ctx, query, service):
         if key == "none":
             yts=Search(query=query).results
             for yt in yts:
+                if len(urllist) > 5:
+                    break
                 if yt.age_restricted:
                     continue
                 try:
