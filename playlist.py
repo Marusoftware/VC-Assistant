@@ -100,8 +100,8 @@ class Playlist():
         if len(self.playlist)>1:
             data=list(self.playlist.values())[0]
             if self.loop:
-                if self.skiped:
-                    self.playlist.move_to_end(data["title"])
+                #if self.skiped:
+                self.playlist.move_to_end(data["title"])
             else:
                 self.playlist.pop(data["title"])
                 threading.Thread(target=self._delfile, args=[data["path"]]).start()
