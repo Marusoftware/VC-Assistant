@@ -1,4 +1,4 @@
-from discord import SelectOption, Option, SlashCommandOptionType, Member, Embed
+from discord import SelectOption, Option, Member, Embed
 import logging, argparse, discord, random, string, re, datetime, os, io, traceback
 try:
     import pyopenjtalk, numpy
@@ -87,9 +87,7 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None):
     if type(ctx) == commands.Context:
         ctx:commands.Context=ctx
         await ctx.send(content=content, **options)
-    elif type(ctx) == discord.app.InteractionContext:
-        ctx:discord.app.InteractionContext=ctx
-        
+    else:
         await ctx.send(content=content, ephemeral=ephemeral, **options)
 
 ##bot
@@ -514,7 +512,7 @@ async def join(ctx, channel:discord.VoiceChannel=None):
         else:
             await Send(ctx, "Connected to VC")
 @bot.slash_command(name="join", desecription="join to VC")
-async def join_sl(ctx, channel:Option(SlashCommandOptionType.channel, "VC", required=False, default=None)):
+async def join_sl(ctx, channel:Option(discord.VoiceChannel, "VC", required=False, default=None)):#7 is Option type channel.
     await join(ctx, channel)
 #play
 @bot.command(name="play", aliases=["p"], desecription="Play in VC")
@@ -871,7 +869,7 @@ async def mvt(ctx, channel:discord.VoiceChannel):
     await ctx.guild.voice_client.move_to(channel)
     await Send(ctx, "Moved....")
 @bot.slash_command(name="move2", desecription="Move to Another VC")
-async def mvt_sl(ctx, channel:Option(SlashCommandOptionType.channel, "VC", required=True)):
+async def mvt_sl(ctx, channel:Option(discord.VoiceChannel, "VC", required=True)):
     await mvt(ctx, channel)
 ##tts
 if enjtalk:
