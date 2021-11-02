@@ -88,7 +88,7 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None):
         ctx:commands.Context=ctx
         await ctx.send(content=content, **options)
     else:
-        await ctx.send(content=content, ephemeral=ephemeral, **options)
+        await ctx.respond(content=content, ephemeral=ephemeral, **options)
 
 ##bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
