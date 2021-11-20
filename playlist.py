@@ -39,7 +39,7 @@ class StopWatch():
             self.start()
 
 class Playlist():
-    def __init__(self):
+    def __init__(self, parent):
         self.thread=None
         self.state="stop"
         self.stopwatch=StopWatch()
@@ -48,12 +48,13 @@ class Playlist():
         self.loop=False
         self.move2=False
         self.skiped=False
+        self.parent=parent
         self.play_callback=play_callback
         self.pause_callback=pause_callback
         self.stop_callback=stop_callback
         self.resume_callback=resume_callback
-    def add(self, length, title, path, user, nico=None):
-        self.playlist[title]={"title":title, "length":length, "path":path, "nico":nico, "user":user}
+    def add(self, length, title, path, user, url, nico=None):
+        self.playlist[title]={"title":title, "length":length, "path":path, "nico":nico, "user":user, "uid":user.id, "url": url}
     def play(self):
         if len(self.playlist) != 0:
             data=list(self.playlist.values())[0]
@@ -114,10 +115,12 @@ class Playlist():
                 self.stop()
         else:
             pass
-    def cleanup(self):
-        for i in self.playlist:
-            if os.path.exists(self.playlist[i]["path"]): os.remove(self.playlist[i]["path"])
-        self.playlist.clear()
+    def save(self, name="saved"):
+        temp={}
+        for music in self.playlist:
+            temp[music]={"title":self.playlist[music]["title"], "length":self.playlist[music]["length"], "path":self.playlist[music]["path"], "user":self.playlist[music]["uid"], "url":self.playlist[music]["url"]}
+        self.parent.data["playlists"][name]=temp
+        self.parent._syncData()
 def play_callback(self, data):
     pass
 def pause_callback(self):

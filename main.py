@@ -77,7 +77,6 @@ def state2emoji(state):
     elif state == "stop":
         return ":stop_button:" 
     else:
-        print(state)
         return ":grey_question:"
 #Send
 async def Send(ctx, content="", view=None, ephemeral=False, embed=None):
@@ -133,6 +132,7 @@ async def on_voice_state_update(member, before, after):
     playlist = Data.getGuildData(_getGuildId(member)).getPlaylist()
     try:
         if len(playlist.channel.channel.members) <= 1 and not playlist.move2:
+            playlist.save()
             await playlist.channel.disconnect()
         else:
             playlist.move2 = False
@@ -324,7 +324,14 @@ async def connect(channel):
         playlist=Data.getGuildData(_getGuildId(channel)).getPlaylist()
         playlist.channel=channel.guild.voice_client
         playlist.play_callback=play_callback
-        return True
+        playlists=Data.getGuildData(_getGuildId(channel)).getProperty("playlists")
+        if "saved" in playlists:
+            if len(playlists["saved"]) !=0:
+                return playlists["saved"]
+            else:
+                return True
+        else:
+            return True
 async def search_music(ctx, query, service):
     urllist=[]
     if service == "search-nico":
@@ -430,14 +437,14 @@ def play_music(url, channel, user, service="detect", stream=False):
                 path=st
             else:
                 path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
-        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, yt.title, path, user)
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, yt.title, path, user, url)
     elif service == "nico":
         nico=NicoNicoVideo(url=url)
         nico.connect()
         data=nico.get_info()
-        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(data["video"]["duration"], data["video"]["title"], nico.get_download_link(), user, nico=nico)
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(data["video"]["duration"], data["video"]["title"], nico.get_download_link(), user, url, nico=nico)
     elif service == "file":
-        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(url)["streams"][0]["duration"])), stream, url, user)
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(url)["streams"][0]["duration"])), stream, url, user, url)
     else:
         return -1
     if channel.is_playing():
@@ -448,7 +455,7 @@ def play_music(url, channel, user, service="detect", stream=False):
         Data.getGuildData(_getGuildId(channel)).getPlaylist().play()
         return 0
 def play_callback(self, data):
-    if type(data["path"]) == str: 
+    if type(data["path"]) == str:
         if ".m3u8" in data["path"]:
             self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -hls_allow_cache 1"), after=self.next)
         else:
@@ -493,29 +500,35 @@ class MusicSelction(Select):
         await interaction.message.edit(content=text)
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
-async def join(ctx, channel:discord.VoiceChannel=None):
+async def join(ctx, channel:discord.VoiceChannel=None, restore:bool=True):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await Send(ctx, 'Music is not enabled.', ephemeral=True)
         return
-    if channel is None:
-        if isinstance(ctx.author, Member):
-            if ctx.author.voice is None:
-                await Send(ctx, "Please assign or enter to VC.", ephemeral=True)
+    if isinstance(ctx.author, Member):
+        if ctx.author.voice is None:
+            await Send(ctx, "Please assign or enter to VC.", ephemeral=True)
+        else:
+            if channel is None:
+                state=await connect(ctx.author.voice.channel)
+                channel=ctx.author.voice.channel
             else:
-                if not await connect(ctx.author.voice.channel):
-                    await Send(ctx, "Sorry... Can't connect to VC....", ephemeral=True)
+                state=await connect(channel)
+            if state!=False:
+                if type(state) == dict and restore:
+                    for music in state:
+                        play_music(state[music]["url"], ctx.guild.voice_client, ctx.author)
+                    await Send(ctx, "Connected to VC(And restore latest session.)")
+                    Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop("saved")
+                    Data.getGuildData(_getGuildId(ctx))._syncData()
                 else:
                     await Send(ctx, "Connected to VC")
-        else:
-            await Send(ctx, "Now no support for DM...Sorry...", ephemeral=True)
+            else:
+                await Send(ctx, "Sorry... Can't connect to VC....", ephemeral=True)
     else:
-        if not await connect(channel):
-            await Send(ctx, "Sorry... Can't connect to VC....")
-        else:
-            await Send(ctx, "Connected to VC")
+        await Send(ctx, "Now no support for DM...Sorry...", ephemeral=True)
 @bot.slash_command(name="join", desecription="join to VC")
-async def join_sl(ctx, channel:Option(discord.VoiceChannel, "VC", required=False, default=None)):#7 is Option type channel.
-    await join(ctx, channel)
+async def join_sl(ctx, channel:Option(discord.VoiceChannel, "VC", required=False, default=None), restore:Option(bool, "Restore latest playing.", required=False, default=True)):#7 is Option type channel.
+    await join(ctx, channel, restore)
 #play
 @bot.command(name="play", aliases=["p"], desecription="Play in VC")
 async def play(ctx, *query):
@@ -548,10 +561,8 @@ async def play(ctx, *query):
             view=View(timeout=None)
             for i in range(n):
                 view.add_item(MusicSelction(custom_id="test"+str(i), urllist=urllist[i*25:i*25+25], channel=ctx.guild.voice_client, max_values=25))
-                print(urllist[i*25:i*25+25])
             if not len(urllist)%25 == 0:
                 view.add_item(MusicSelction(custom_id="test", urllist=urllist[len(urllist)%25*-1:], channel=ctx.guild.voice_client, max_values=len(urllist)%25))
-                print(urllist[len(urllist)%25*-1:])
             await msg.edit("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await msg.edit("Error in Searching Music.")

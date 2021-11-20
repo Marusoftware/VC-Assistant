@@ -31,7 +31,7 @@ class GuildData():
         self.data_dir=data_dir#HERE:Guild DB Directory
         self.guild_id=guild_id
         self.data_path=os.path.join(self.data_dir,str(guild_id)+".guild")
-        self.default_data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none", "TTSChannels":[],"enTTS":False}
+        self.default_data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none", "TTSChannels":[], "enTTS":False, "playlists":{}}
         if db_url:
             self.conn = psycopg2.connect(db_url)
             cursor=self.conn.cursor()
@@ -59,7 +59,7 @@ class GuildData():
         for index in self.default_data:
             if not index in self.data:
                 self.data[index]=self.default_data[index]
-        self.playlist=Playlist()
+        self.playlist=Playlist(parent=self)
         data_obj.playlists.append(self.playlist)
     def _syncData(self):
         if db_url:
