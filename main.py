@@ -442,7 +442,7 @@ def play_music(url, channel, user, service="detect", stream=False):
         return -1
     if channel.is_playing():
         return 1
-    elif len(Data.getGuildData(_getGuildId(channel)).getPlaylist().playlist)!=0:
+    elif len(Data.getGuildData(_getGuildId(channel)).getPlaylist().playlist)>1:
         return 1
     else:
         Data.getGuildData(_getGuildId(channel)).getPlaylist().play()
@@ -929,4 +929,4 @@ if argv.token == "env":
 else:
     bot.run(argv.token)
 for i in playlist_list:
-    i.cleanup()
+    i.save()
