@@ -442,6 +442,8 @@ def play_music(url, channel, user, service="detect", stream=False):
         return -1
     if channel.is_playing():
         return 1
+    elif len(Data.getGuildData(_getGuildId(channel)).getPlaylist().playlist)!=0:
+        return 1
     else:
         Data.getGuildData(_getGuildId(channel)).getPlaylist().play()
         return 0
@@ -539,6 +541,7 @@ async def play(ctx, *query):
         else:
             await msg.edit(content=f'Oh...Some Error occured...')
     elif service in ["playlist-youtube"]:
+        msg=await ctx.send("Processing...")
         urllist=await get_playlist(ctx, query, service)
         if urllist:
             n=int(len(urllist)/25)
@@ -549,16 +552,17 @@ async def play(ctx, *query):
             if not len(urllist)%25 == 0:
                 view.add_item(MusicSelction(custom_id="test", urllist=urllist[len(urllist)%25*-1:], channel=ctx.guild.voice_client, max_values=len(urllist)%25))
                 print(urllist[len(urllist)%25*-1:])
-            await ctx.send("Select Music to Play.(Multiple is OK)",view=view)
+            await msg.edit("Select Music to Play.(Multiple is OK)",view=view)
         else:
-            await ctx.send("Error in Searching Music.")
+            await msg.edit("Error in Searching Music.")
     elif service in ["playlist-youtube-all"]:
+        message = await ctx.send("Processing...")
         query=query.replace("all:","")
         urllist=await get_playlist(ctx, query, service, select=False)
         if len(urllist) == 1:
-            message = await ctx.send(content=f'Prepareing playing "{urllist[0]}"...', view=None)
+            message.edit(content=f'Prepareing playing "{urllist[0]}"...', view=None)
         else:
-            message = await ctx.send(content=f'Prepareing playing Musics...', view=None)
+            message.edit(content=f'Prepareing playing Musics...', view=None)
         text=""
         for value in urllist:
             status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1)
@@ -580,14 +584,17 @@ async def play(ctx, *query):
                 await msg.edit(content=f'Added to queue.')
             else:
                 await msg.edit(content=f'Oh...Some Error occured...')
+        else:
+            msg = await ctx.reply(content="Wrong Attachment.(only one attachment is required.)", mention_author=True)
     else:
+        msg=await ctx.send("Searching...")
         urllist=await search_music(ctx, query, service)
         if urllist:
             view=View(timeout=None)
             view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
-            await ctx.send("Select Music to Play.",view=view)
+            await msg.edit("Select Music to Play.",view=view)
         else:
-            await ctx.send("Error in Searching Music.")
+            await msg.edit("Error in Searching Music.")
 @bot.slash_command(name="play", desecription="join to VC")
 async def play(ctx, query:Option(str, "Search text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico","playlist-youtube-all"], default="detect")):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
@@ -612,6 +619,7 @@ async def play(ctx, query:Option(str, "Search text or url", required=True), serv
         else:
             await msg.edit(content=f'Oh...Some Error occured...')
     elif service in ["playlist-youtube"]:
+        msg=await ctx.respond("Processing...")
         urllist=await get_playlist(ctx, query, service)
         if urllist:
             view=View(timeout=None)
@@ -620,16 +628,17 @@ async def play(ctx, query:Option(str, "Search text or url", required=True), serv
                 view.add_item(MusicSelction(custom_id="test"+str(i), urllist=urllist[i*25:i*25+25], channel=ctx.guild.voice_client, max_values=25))
             if not len(urllist)%25 == 0:
                 view.add_item(MusicSelction(custom_id="test", urllist=urllist[len(urllist)%25*-1:], channel=ctx.guild.voice_client, max_values=len(urllist)%25))
-            await ctx.respond("Select Music to Play.(Multiple is OK)",view=view)
+            await msg.edit("Select Music to Play.(Multiple is OK)",view=view)
         else:
-            await ctx.respond("Error in Searching Music.")
+            await msg.edit("Error in Searching Music.")
     elif service in ["playlist-youtube-all"]:
+        msg=await ctx.respond("Processing...")
         query=query.replace("all:","")
         urllist=await get_playlist(ctx, query, service, select=False)
         if len(urllist) == 1:
-            message = await ctx.respond(content=f'Prepareing playing "{urllist[0]}"...', view=None)
+            await msg.edit(content=f'Prepareing playing "{urllist[0]}"...', view=None)
         else:
-            message = await ctx.respond(content=f'Prepareing playing Musics...', view=None)
+            await msg.edit(content=f'Prepareing playing Musics...', view=None)
         text=""
         for value in urllist:
             status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1)
@@ -639,7 +648,7 @@ async def play(ctx, query:Option(str, "Search text or url", required=True), serv
                 text+=f'Added to queue "{value}".\n'
             else:
                 text+=f'Oh...Some Error occured...\n'
-            await message.edit(content=text)
+            await msg.edit(content=text)
     elif service == "file":
         if len(ctx.message.attachments) != 0:
             file=ctx.message.attachments[0]
@@ -651,12 +660,15 @@ async def play(ctx, query:Option(str, "Search text or url", required=True), serv
                 await msg.edit(content=f'Added to queue.')
             else:
                 await msg.edit(content=f'Oh...Some Error occured...')
+        else:
+            await ctx.respond(content="Wrong Attachment.(only one attachment is required.)")
     else:
+        msg=await ctx.send("Searching...")
         urllist=await search_music(ctx, query, service)
         if urllist:
             view=View(timeout=None)
             view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
-            await ctx.respond("Select Music to Play.",view=view)
+            await msg.edit("Select Music to Play.",view=view)
 #skip
 @bot.command(name="skip", aliases=["s"], desecription="Skip Music")
 async def skip(ctx):
