@@ -877,7 +877,7 @@ async def dc(ctx):
     if not ctx.guild.voice_client is None:
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
         playlist.stop()
-        playlist.cleanup()
+        #playlist.cleanup()
         await ctx.guild.voice_client.disconnect()
         await Send(ctx, content=f'Disconnect from VC')
 @bot.slash_command(name="disconnect", desecription="Disconnect from VC")
