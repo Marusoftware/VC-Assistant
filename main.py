@@ -431,7 +431,7 @@ def play_music(url, channel, user, service="detect", stream=False):
         except LiveStreamError:
             path=yt.streaming_data["hlsManifestUrl"]
         except:
-            print("youtube-dl")
+            logger.info("Using youtube-dl")
             opts={'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], "outtmpl":randomstr(5)+'%(title)s.%(etx)s', 'nocheckcertificate': True}
             path=opts["outtmpl"].replace("%(title)s.%(etx)s", yt.title+".mp3")#fmm...
             from youtube_dl import YoutubeDL
