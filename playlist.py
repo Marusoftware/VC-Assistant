@@ -111,7 +111,7 @@ class Playlist():
         elif len(self.playlist)==1:
             if self.loop:
                 self.play()
-            else:
+            else: 
                 self.stop()
         else:
             pass

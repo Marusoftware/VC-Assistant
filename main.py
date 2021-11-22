@@ -419,24 +419,24 @@ def play_music(url, channel, user, service="detect", stream=False):
     if service == "detect":
         service=service_detection(url)
     if service == "youtube":
-        yt = YouTube(url=url)
-        #yt.bypass_age_gate()
         try:
+            yt = YouTube(url=url)
+            #yt.bypass_age_gate()
             yt.check_availability()
-        except LiveStreamError:
-            path=yt.streaming_data["hlsManifestUrl"]
-        except:
-            opts={'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], "outtmpl":randomstr(5)+'%(title)s.%(etx)s', 'nocheckcertificate': True}
-            path=opts["outtmpl"].replace("%(title)s.%(etx)s", yt.title+".mp3")#fmm...
-            from youtube_dl import YoutubeDL
-            with YoutubeDL(opts) as ytdl:
-                ytdl.download([yt.watch_url])
-        else:
             st=yt.streams.get_audio_only()
             if stream:
                 path=st
             else:
                 path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
+        except LiveStreamError:
+            path=yt.streaming_data["hlsManifestUrl"]
+        except:
+            print("youtube-dl")
+            opts={'format': 'bestaudio/best', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}], "outtmpl":randomstr(5)+'%(title)s.%(etx)s', 'nocheckcertificate': True}
+            path=opts["outtmpl"].replace("%(title)s.%(etx)s", yt.title+".mp3")#fmm...
+            from youtube_dl import YoutubeDL
+            with YoutubeDL(opts) as ytdl:
+                ytdl.download([url])
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, yt.title, path, user, url)
     elif service == "nico":
         nico=NicoNicoVideo(url=url)
