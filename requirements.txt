@@ -1,6 +1,5 @@
 git+https://github.com/Pycord-Development/pycord#egg=py-cord[voice]
-git+https://github.com/alexeichhorn/pytube.git@regex-fix-1 #temp fix
-#pytube
+git+https://github.com/pytube/pytube
 youtube_dl
 aiofiles
 google-api-python-client
