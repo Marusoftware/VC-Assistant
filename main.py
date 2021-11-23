@@ -11,7 +11,7 @@ from pytube import YouTube, Search, Playlist
 from pytube.exceptions import LiveStreamError
 from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
-from discord.ui import Select, View
+from discord.ui import Select, View, Button
 from discord.ext import commands
 
 #parse argv
@@ -481,13 +481,21 @@ def service_detection(url):
         return "search-youtube"
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, channel, max_values=1):
-        super().__init__(custom_id=custom_id, options=urllist,max_values=max_values)
+        super().__init__(custom_id=custom_id, options=urllist,max_values=max_values, placeholder="Select Music from here.")
         self.urllist=urllist
     async def callback(self, interaction):
         if len(self.values) == 1:
-            await interaction.message.edit(content=f'Prepareing playing "{self.values[0]}"...', view=None)
+            view=View()
+            view.add_item(TFButton(True, callback=self.ok, data=interaction))
+            view.add_item(TFButton(False, callback=self.cancel, data=None))
+            await interaction.response.send_message(content=f'Is this OK? \n "{self.values[0]}" ', view=view)
         else:
             await interaction.message.edit(content=f'Prepareing playing Musics...', view=None)
+    async def ok(self, interaction, data):
+        await interaction.message.delete()
+        await data.message.edit(content=f'Prepareing playing Music... \n {self.values[0]}', view=None)
+        await self.play(data)
+    async def play(self, interaction):
         text=""
         for value in self.values:
             status=play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1)
@@ -498,6 +506,25 @@ class MusicSelction(Select):
             else:
                 text+=f'Oh...Some Error occured...\n'
         await interaction.message.edit(content=text, view=None)
+    async def cancel(self, interaction, data):
+        await interaction.message.delete()
+
+class TFButton(Button):
+    def __init__(self, boolen:bool, callback, data):
+        if boolen:
+            style=discord.ButtonStyle.green
+            label="OK"
+            emoji="⭕"
+        else:
+            style=discord.ButtonStyle.gray
+            label="Cancel"
+            emoji="❌"
+        self.cb=callback
+        self.data=data
+        super().__init__(style=style, label=label, emoji=emoji)
+    async def callback(self, interaction):
+        await self.cb(interaction, self.data)
+
 #join
 @bot.command(name="join", aliases=["j"], desecription="join to VC")
 async def join(ctx, channel:discord.VoiceChannel=None, restore:bool=True):
