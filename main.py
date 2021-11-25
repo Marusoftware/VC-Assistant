@@ -444,6 +444,7 @@ def play_music(url, channel, user, service="detect", stream=False):
         data=nico.get_info()
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(data["video"]["duration"], data["video"]["title"], nico.get_download_link(), user, url, nico=nico)
     elif service == "file":
+        import ffmpeg
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(url)["streams"][0]["duration"])), stream, url, user, url)
     else:
         return -1
@@ -623,7 +624,7 @@ async def play(ctx, *query):
             else:
                 await msg.edit(content=f'Oh...Some Error occured...')
         else:
-            msg = await ctx.reply(content="Wrong Attachment.(only one attachment is required.)", mention_author=True)
+            msg = await ctx.reply(content="Wrong Attachment.(just one attachment is required.)", mention_author=True)
     else:
         msg=await ctx.send("Searching...")
         urllist=await search_music(ctx, query, service)
