@@ -952,7 +952,7 @@ if enjtalk:
                     if d == b'':
                         break
                     else:
-                        playlist.channel.send_audio_packet(d, encode=False)
+                        playlist.channel.send_audio_packet(d, encode=True)
                 playlist.resume()
             else:
                 while True:
@@ -960,7 +960,7 @@ if enjtalk:
                     if d == b'':
                         break
                     else:
-                        playlist.channel.send_audio_packet(d, encode=False)
+                        playlist.channel.send_audio_packet(d, encode=True)
 if not enjtalk: logger.warning("Jtalk is not enabled.")
 ##Run
 if argv.token == "env":
