@@ -760,6 +760,7 @@ async def getsaved_sl(ctx):
 async def save(ctx, id:str):
     Data.getGuildData(_getGuildId(ctx)).playlist.save(id)
     await Send(ctx, "Saved.")
+@bot.slash_command(name="save")
 async def save_sl(ctx, id:Option(int, description="An ID for save.", required=True)):
     await save(ctx, id)
 #del
