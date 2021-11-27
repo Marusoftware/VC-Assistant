@@ -89,7 +89,9 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None, mention_
         msg=await ctx.respond(content=content, ephemeral=ephemeral, **options)
     return msg
 async def status2msg(status, value=None, msg=None, options={}):
-    if not value is None:
+    if value is None:
+        value=""
+    else:
         value=f'"{value}"'
     if status == 0:
         text=f'Start playing {value}.\n'
