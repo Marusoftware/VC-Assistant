@@ -460,11 +460,11 @@ def play_callback(self, data):
         if ".m3u8" in data["path"]:
             self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -hls_allow_cache 1"), after=self.next)
         else:
-            self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -af dynaudnorm -hls_allow_cache 1"), after=self.next)
+            self.channel.play(discord.FFmpegPCMAudio(data["path"], options='-vn -hls_allow_cache 1'), after=self.next)
     else:
         path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5))
         self.playlist[list(self.playlist.keys())[0]]["path"]=path
-        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af dynaudnorm"), after=self.next)
+        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn"), after=self.next)
 def service_detection(url):
     if re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
         return "youtube"
@@ -486,7 +486,7 @@ class MusicSelction(Select):
         self.urllist=urllist
     async def callback(self, interaction):
         if len(self.values) == 1:
-            view=View()
+            view=View(timeout=0)
             view.add_item(TFButton(True, callback=self.ok, data=interaction))
             view.add_item(TFButton(False, callback=self.cancel, data=None))
             await interaction.response.send_message(content=f'Is this OK? \n "{self.values[0]}" ', view=view)
