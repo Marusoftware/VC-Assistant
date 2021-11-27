@@ -84,9 +84,10 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None, mention_
     if not embed is None: options["embed"]=embed
     if type(ctx) == commands.Context:
         ctx:commands.Context=ctx
-        await ctx.send(content=content, mention_author=mention_author, **options)
+        msg=await ctx.send(content=content, mention_author=mention_author, **options)
     else:
-        await ctx.respond(content=content, ephemeral=ephemeral, **options)
+        msg=await ctx.respond(content=content, ephemeral=ephemeral, **options)
+    return msg
 async def status2msg(status, value=None, msg=None, options={}):
     if not value is None:
         value=f'"{value}"'
@@ -585,7 +586,7 @@ async def join_sl(ctx, channel:Option(discord.VoiceChannel, "VC", required=False
 #play
 @bot.command(name="play", aliases=["p"], desecription="Play in VC")
 async def play(ctx, *query):
-    if type(query) == list:
+    if type(query) != str:
         query=" ".join(query)
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await Send(ctx, 'Music is not enabled.', ephemeral=True)
