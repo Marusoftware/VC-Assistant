@@ -78,15 +78,28 @@ def state2emoji(state):
     else:
         return ":grey_question:"
 #Send
-async def Send(ctx, content="", view=None, ephemeral=False, embed=None):
+async def Send(ctx, content="", view=None, ephemeral=False, embed=None, mention_author=False):
     options={}
     if not view is None: options["view"]=view
     if not embed is None: options["embed"]=embed
     if type(ctx) == commands.Context:
         ctx:commands.Context=ctx
-        await ctx.send(content=content, **options)
+        await ctx.send(content=content, mention_author=mention_author, **options)
     else:
         await ctx.respond(content=content, ephemeral=ephemeral, **options)
+async def status2msg(status, value=None, msg=None, options={}):
+    if not value is None:
+        value=f'"{value}"'
+    if status == 0:
+        text=f'Start playing {value}.\n'
+    elif status == 1:
+        text=f'Added to queue {value}.\n'
+    else:
+        text=f'Oh...Some Error occured...\n'
+    if msg is None:
+        return text
+    else:
+        await msg.edit(text, **options)
 
 ##bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
@@ -417,6 +430,17 @@ async def get_playlist(ctx, query, service, select=True):
             else:
                 urllist.append(item.watch_url)
         return urllist
+    elif service in ["save", "save-select"]:
+        save=Data.getGuildData(_getGuildId(ctx)).data["playlists"][query]
+        for item in save:
+            title=item
+            if len(title)>90:
+                title=title[0:90]
+            if select:
+                urllist.append(SelectOption(label=title,value=save[item]["url"]))
+            else:
+                urllist.append(save[item]["url"])
+        return urllist
 def play_music(url, channel, user, service="detect", stream=False):
     if service == "detect":
         service=service_detection(url)
@@ -478,6 +502,10 @@ def service_detection(url):
         return "search-nico"
     elif re.match("all:(\S)+", url):
         return "playlist-youtube-all"
+    elif re.match("save:(\S)+", url):
+        return "save"
+    elif re.match("savel:(\S)+", url):
+        return "save-select"
     elif "file" in url:
         return "file"
     else:
@@ -502,12 +530,7 @@ class MusicSelction(Select):
         text=""
         for value in self.values:
             status=play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1)
-            if status == 0:
-                text+=f'Start playing "{value}".\n'
-            elif status == 1:
-                text+=f'Added to queue "{value}".\n'
-            else:
-                text+=f'Oh...Some Error occured...\n'
+            text+=await status2msg(status, value)
         await interaction.message.edit(content=text, view=None)
     async def cancel(self, interaction, data):
         await interaction.message.delete()
@@ -562,29 +585,26 @@ async def join_sl(ctx, channel:Option(discord.VoiceChannel, "VC", required=False
 #play
 @bot.command(name="play", aliases=["p"], desecription="Play in VC")
 async def play(ctx, *query):
-    query=" ".join(query)
+    if type(query) == list:
+        query=" ".join(query)
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.', ephemeral=True)
         return
     if ctx.guild.voice_client is None:
         if ctx.author.voice is None:
-            await ctx.send("Wasn't connected to VC")
+            await Send(ctx, "Wasn't connected to VC")
             return
         else:
             await connect(ctx.author.voice.channel)
-            await ctx.send("Wasn't connected to VC. But you connected VC, So I connect there.")
+            await Send(ctx, "Wasn't connected to VC. But you connected VC, So I connect there.")
     service=service_detection(query)
     if service in ["youtube","nico"]:
-        msg = await ctx.reply(content=f'Prepareing playing...', mention_author=True)
+        msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
         status=play_music(query, ctx.guild.voice_client, ctx.author, service)
-        if status == 0:
-            await msg.edit(content=f'Start playing.')
-        elif status == 1:
-            await msg.edit(content=f'Added to queue.')
-        else:
-            await msg.edit(content=f'Oh...Some Error occured...')
-    elif service in ["playlist-youtube"]:
-        msg=await ctx.send("Processing...")
+        await status2msg(status, msg=msg)
+    elif service in ["playlist-youtube", "save-select"]:
+        query=query.replace("savel:","")
+        msg=await Send(ctx, "Processing...")
         urllist=await get_playlist(ctx, query, service)
         if urllist:
             n=int(len(urllist)/25)
@@ -596,39 +616,29 @@ async def play(ctx, *query):
             await msg.edit("Select Music to Play.(Multiple is OK)",view=view)
         else:
             await msg.edit("Error in Searching Music.")
-    elif service in ["playlist-youtube-all"]:
-        message = await ctx.send("Processing...")
+    elif service in ["playlist-youtube-all", "save"]:
+        message = await Send(ctx, "Processing...")
         query=query.replace("all:","")
+        query=query.replace("save:","")
         urllist=await get_playlist(ctx, query, service, select=False)
         if len(urllist) == 1:
-            message.edit(content=f'Prepareing playing "{urllist[0]}"...', view=None)
+            await message.edit(content=f'Prepareing playing "{urllist[0]}"...', view=None)
         else:
-            message.edit(content=f'Prepareing playing Musics...', view=None)
+            await message.edit(content=f'Prepareing playing Musics...', view=None)
         text=""
         for value in urllist:
             status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1)
-            if status == 0:
-                text+=f'Start playing "{value}".\n'
-            elif status == 1:
-                text+=f'Added to queue "{value}".\n'
-            else:
-                text+=f'Oh...Some Error occured...\n'
-            await message.edit(content=text)
+        await status2msg(0,msg=message, value=(None if len(urllist)<2 else f'\n And {len(urllist)-1} musics were added to queue'))
     elif service == "file":
         if len(ctx.message.attachments) != 0:
             file=ctx.message.attachments[0]
-            msg = await ctx.reply(content=f'Prepareing playing...', mention_author=True)
+            msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
             status=play_music(file.url, ctx.guild.voice_client, ctx.author, "file", file.filename)
-            if status == 0:
-                await msg.edit(content=f'Start playing.')
-            elif status == 1:
-                await msg.edit(content=f'Added to queue.')
-            else:
-                await msg.edit(content=f'Oh...Some Error occured...')
+            await status2msg(status, msg=msg)
         else:
-            msg = await ctx.reply(content="Wrong Attachment.(just one attachment is required.)", mention_author=True)
+            msg = await Send(ctx, content="Wrong Attachment.(just one attachment is required.)", mention_author=True)
     else:
-        msg=await ctx.send("Searching...")
+        msg=await Send(ctx, "Searching...")
         urllist=await search_music(ctx, query, service)
         if urllist:
             view=View(timeout=None)
@@ -637,147 +647,56 @@ async def play(ctx, *query):
         else:
             await msg.edit("Error in Searching Music.")
 @bot.slash_command(name="play", desecription="join to VC")
-async def play(ctx, query:Option(str, "Search text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico","playlist-youtube-all"], default="detect")):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.', ephemeral=True)
-        return
-    if ctx.guild.voice_client is None:
-        if ctx.author.voice is None:
-            await ctx.respond("Wasn't connected to VC")
-            return
-        else:
-            await connect(ctx.author.voice.channel)
-            await ctx.respond("Wasn't connected to VC. But you connected VC, So I connect there.")
-    if service == "detect":
-        service=service_detection(query)
-    if service in ["youtube","nico"]:
-        msg = await ctx.respond(content=f'Prepareing playing...', mention_author=True)
-        status=play_music(query, ctx.guild.voice_client, ctx.author, service)
-        if status == 0:
-            await msg.edit(content=f'Start playing.')
-        elif status == 1:
-            await msg.edit(content=f'Added to queue.')
-        else:
-            await msg.edit(content=f'Oh...Some Error occured...')
-    elif service in ["playlist-youtube"]:
-        msg=await ctx.respond("Processing...")
-        urllist=await get_playlist(ctx, query, service)
-        if urllist:
-            view=View(timeout=None)
-            n=int(len(urllist)/25)
-            for i in range(n):
-                view.add_item(MusicSelction(custom_id="test"+str(i), urllist=urllist[i*25:i*25+25], channel=ctx.guild.voice_client, max_values=25))
-            if not len(urllist)%25 == 0:
-                view.add_item(MusicSelction(custom_id="test", urllist=urllist[len(urllist)%25*-1:], channel=ctx.guild.voice_client, max_values=len(urllist)%25))
-            await msg.edit("Select Music to Play.(Multiple is OK)",view=view)
-        else:
-            await msg.edit("Error in Searching Music.")
-    elif service in ["playlist-youtube-all"]:
-        msg=await ctx.respond("Processing...")
-        query=query.replace("all:","")
-        urllist=await get_playlist(ctx, query, service, select=False)
-        if len(urllist) == 1:
-            await msg.edit(content=f'Prepareing playing "{urllist[0]}"...', view=None)
-        else:
-            await msg.edit(content=f'Prepareing playing Musics...', view=None)
-        text=""
-        for value in urllist:
-            status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1)
-            if status == 0:
-                text+=f'Start playing "{value}".\n'
-            elif status == 1:
-                text+=f'Added to queue "{value}".\n'
-            else:
-                text+=f'Oh...Some Error occured...\n'
-            await msg.edit(content=text)
-    elif service == "file":
-        if len(ctx.message.attachments) != 0:
-            file=ctx.message.attachments[0]
-            msg = await ctx.respond(content=f'Prepareing playing...')
-            status=play_music(file.url, ctx.guild.voice_client, ctx.author, "file", file.filename)
-            if status == 0:
-                await msg.edit(content=f'Start playing.')
-            elif status == 1:
-                await msg.edit(content=f'Added to queue.')
-            else:
-                await msg.edit(content=f'Oh...Some Error occured...')
-        else:
-            await ctx.respond(content="Wrong Attachment.(only one attachment is required.)")
-    else:
-        msg=await ctx.send("Searching...")
-        urllist=await search_music(ctx, query, service)
-        if urllist:
-            view=View(timeout=None)
-            view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
-            await msg.edit("Select Music to Play.",view=view)
+async def play_sl(ctx, query:Option(str, "Search text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico","playlist-youtube-all","save","savel"], default="detect")):
+    await play(ctx, query=query)
 #skip
 @bot.command(name="skip", aliases=["s"], desecription="Skip Music")
 async def skip(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.send(content=f'Skiping Music...')
+        await Send(ctx, content=f'Skiping Music...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().skip()
 @bot.slash_command(name="skip", desecription="Skip Music")
-async def skip(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    if not ctx.guild.voice_client is None:
-        await ctx.respond(content=f'Skiping Music...')
-        Data.getGuildData(_getGuildId(ctx)).getPlaylist().skip()
+async def skip_sl(ctx):
+    await skip(ctx)
 #pause
 @bot.command(name="pause", aliases=["pa"], desecription="Pause Music")
 async def pause(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.send(content=f'Pausing Music...')
+        await Send(ctx, content=f'Pausing Music...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().pause()
 @bot.slash_command(name="pause", desecription="Pause Music")
-async def pause(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    if not ctx.guild.voice_client is None:
-        await ctx.respond(content=f'Pausing Music...')
-        Data.getGuildData(_getGuildId(ctx)).getPlaylist().pause()
+async def pause_sl(ctx):
+    await pause(ctx)
 #resume
 @bot.command(name="resume", aliases=["re"], desecription="Resume Music")
 async def resume(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.send(content=f'Resuming Music...')
+        await Send(ctx, content=f'Resuming Music...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().resume()
 @bot.slash_command(name="resume", desecription="Resume Music")
-async def resume(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    if not ctx.guild.voice_client is None:
-        await ctx.respond(content=f'Resuming Music...')
-        Data.getGuildData(_getGuildId(ctx)).getPlaylist().resume()
+async def resume_sl(ctx):
+    await resume(ctx)
 #stop
 @bot.command(name="stop", aliases=["st"], desecription="Stop Music")
 async def stop(ctx):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     if not ctx.guild.voice_client is None:
-        await ctx.send(content=f'Stop playing...')
+        await Send(ctx, content=f'Stop playing...')
         Data.getGuildData(_getGuildId(ctx)).getPlaylist().stop()
 @bot.slash_command(name="stop", desecription="Stop Music")
-async def stop(ctx):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    if not ctx.guild.voice_client is None:
-        await ctx.respond(content=f'Stop playing...')
-        Data.getGuildData(_getGuildId(ctx)).getPlaylist().stop()
+async def stop_sl(ctx):
+    await stop(ctx)
 #nowplaying
 @bot.command(name="nowplaying", aliases=["np"], desecription="Show playing Music.")
 async def np(ctx):
@@ -822,86 +741,72 @@ async def showq(ctx):
 async def showq_sl(ctx):
     await showq(ctx)
 #getsaved
-@bot.command(name="getsaved")
+@bot.command(name="getsaved", aliases=["gsv"])
 async def getsaved(ctx):
-    await ctx.send(str(Data.getGuildData(_getGuildId(ctx)).data["playlists"]))
+    temp=""
+    saved=Data.getGuildData(_getGuildId(ctx)).data["playlists"]
+    for i in saved:
+        temp+=f'{i} : {",".join(list(saved[i].keys()))}\n'
+    await Send(ctx, temp)
+@bot.slash_command(name="getsaved")
+async def getsaved_sl(ctx):
+    await getsaved(ctx)
+#save
+@bot.command(name="save", aliases=["sv"])
+async def save(ctx, id:str):
+    Data.getGuildData(_getGuildId(ctx)).playlist.save(id)
+    await Send(ctx, "Saved.")
+async def save_sl(ctx, id:Option(int, description="An ID for save.", required=True)):
+    await save(ctx, id)
 #del
 @bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music.")
 async def delete(ctx, index:int):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     index-=1
     if index == 0:
-        await ctx.send("If you want to delete Index 1, please use skip.")
+        await Send(ctx, "If you want to delete Index 1, please use skip.")
         return
     if not ctx.guild.voice_client is None:
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         playlist.pop(list(playlist.keys())[index])
-        await ctx.send("Delete Music")
+        await Send(ctx, "Delete Music")
 @bot.slash_command(name="delete", desecription="Delete queued Music.")
-async def delete(ctx, index:Option(int, "Music Index", required=True)):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    index-=1
-    if index == 0:
-        await ctx.respond("If you want to delete Index 1, please use skip.")
-        return
-    if not ctx.guild.voice_client is None:
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
-        playlist.pop(list(playlist.keys())[index])
-        await ctx.respond("Delete Music")
+async def delete_sl(ctx, index:Option(int, "Music Index", required=True)):
+    await delete(ctx, index)
 #movetoend
 @bot.command(name="movetoend", aliases=["mv","m"], desecription="Move queued Music to end.")
 async def movetoend(ctx, index:int):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     index-=1
     if index == 0:
-        await ctx.send("If you want to move Index 1, please use skip.")
+        await Send(ctx, "If you want to move Index 1, please use skip.")
         return
     if not ctx.guild.voice_client is None:
         playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
         playlist.move_to_end(list(playlist.keys())[index])
-        await ctx.send("Music was moved!!")
+        await Send(ctx, "Music was moved!!")
 @bot.slash_command(name="move", desecription="Move queued Music to end.")
-async def movetoend(ctx, index:Option(int, "Music Index", required=True)):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    index-=1
-    if index == 0:
-        await ctx.respond("If you want to move Index 1, please use skip.")
-        return
-    if not ctx.guild.voice_client is None:
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
-        playlist.move_to_end(list(playlist.keys())[index])
-        await ctx.respond("Music was moved!!")
+async def movetoend_sl(ctx, index:Option(int, "Music Index", required=True)):
+    await movetoend(ctx, index)
 #loop
 @bot.command(name="loop", aliases=["l"], desecription="Loop queued Music.")
 async def loop(ctx, tf:bool=None):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.send('Music is not enabled.')
+        await Send(ctx, 'Music is not enabled.')
         return
     playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
     if tf is None:
         playlist.loop=not playlist.loop
     else:
         playlist.loop=tf
-    await ctx.send(f'Loop was now {"enabled" if playlist.loop else "disabled"}!!')
+    await Send(ctx, f'Loop was now {"enabled" if playlist.loop else "disabled"}!!')
 @bot.slash_command(name="loop", desecription="Loop queued Music.")
-async def loop(ctx, tf:Option(bool, "Music Index", required=False, default=None)):
-    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-        await ctx.respond('Music is not enabled.')
-        return
-    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
-    if tf is None:
-        playlist.loop=not playlist.loop
-    else:
-        playlist.loop=tf
-    await ctx.respond(f'Loop was now {"enabled" if playlist.loop else "disabled"}!!')
+async def loop(ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
+    await loop(ctx, tf)
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
 async def dc(ctx):
