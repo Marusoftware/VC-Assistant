@@ -489,11 +489,11 @@ def play_callback(self, data):
         if ".m3u8" in data["path"]:
             self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -hls_allow_cache 1"), after=self.next)
         else:
-            self.channel.play(discord.FFmpegPCMAudio(data["path"], options='-vn -hls_allow_cache 1'), after=self.next)
+            self.channel.play(discord.FFmpegPCMAudio(data["path"], options='-vn -af loudnorm -hls_allow_cache 1'), after=self.next)
     else:
         path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5))
         self.playlist[list(self.playlist.keys())[0]]["path"]=path
-        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn"), after=self.next)
+        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af loudnorm"), after=self.next)
 def service_detection(url):
     if re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
         return "youtube"
@@ -571,10 +571,10 @@ async def join(ctx, channel:discord.VoiceChannel=None, restore:bool=True):
                 state=await connect(channel)
             if state!=False:
                 if type(state) == dict and restore:
-                    print(state)
+                    msg=await Send(ctx, "Connected to VC(And restoreing latest session.)")
                     for music in state:
-                        play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music]["user"]))
-                    await Send(ctx, "Connected to VC(And restore latest session.)")
+                        play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music]["user"], stream=len(state)>1))
+                    await msg.edit(ctx, "Connected to VC(And restored latest session.)")
                     Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop("saved")
                     Data.getGuildData(_getGuildId(ctx))._syncData()
                 else:
