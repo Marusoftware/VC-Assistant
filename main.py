@@ -572,7 +572,7 @@ async def join(ctx, channel:discord.VoiceChannel=None, restore:bool=True):
             if state!=False:
                 if type(state) == dict and restore:
                     for music in state:
-                        play_music(state[music]["url"], ctx.guild.voice_client, ctx.author)
+                        play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music["id"]]))
                     await Send(ctx, "Connected to VC(And restore latest session.)")
                     Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop("saved")
                     Data.getGuildData(_getGuildId(ctx))._syncData()
@@ -768,7 +768,7 @@ async def delete(ctx, index:str):
         await Send(ctx, 'Music is not enabled.')
         return
     if index.startswith("save:"):
-        index.replace("save:","")
+        index=index.replace("save:","")
         Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop(index)
         await Send(ctx, "Delete Save")
     else:
