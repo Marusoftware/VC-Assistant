@@ -765,7 +765,8 @@ async def delete(ctx, index:str):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await Send(ctx, 'Music is not enabled.')
         return
-    if str(index).startswith("save:"):
+    if index.startswith("save:"):
+        index.replace("save:","")
         Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop(index)
         await Send(ctx, "Delete Save")
     else:
