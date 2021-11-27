@@ -71,11 +71,16 @@ class Playlist():
             self.stop_callback(self, data)
         else:
             self.stop()
-    def stop(self):
+    def stop(self, save=False):
         if len(self.playlist)!=0:
             data=list(self.playlist.values())[0]
             self.stopwatch.stop()
-            self.stop_callback(self, data)
+            try:
+                self.stop_callback(self, data)
+            except:
+                pass
+            if save:
+                self.save()
             self.playlist.clear()
             threading.Thread(target=self._delfile, args=[data["path"]]).start()
             self.state="stop"
@@ -96,6 +101,8 @@ class Playlist():
             else:
                 break
     def next(self, exp):
+        if self.state!="play":
+            return
         while self.channel.is_playing():
             time.sleep(0.1)
         if len(self.playlist)>1:
@@ -111,7 +118,7 @@ class Playlist():
         elif len(self.playlist)==1:
             if self.loop:
                 self.play()
-            else: 
+            else:
                 self.stop()
         else:
             pass

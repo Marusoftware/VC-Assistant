@@ -132,7 +132,7 @@ async def on_voice_state_update(member, before, after):
     playlist = Data.getGuildData(_getGuildId(member)).getPlaylist()
     try:
         if len(playlist.channel.channel.members) <= 1 and not playlist.move2:
-            playlist.save()
+            playlist.stop(save=True)
             await playlist.channel.disconnect()
         else:
             playlist.move2 = False
@@ -147,7 +147,7 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_disconnect():
     for guild in bot.guilds:
-        Data.getGuildData(guild.id).playlist.save()
+        Data.getGuildData(guild.id).playlist.stop(save=True)
 """commands"""
 ## general
 @bot.group(name="va")
