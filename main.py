@@ -6,7 +6,7 @@ try:
     enjtalk=True
 except:
     enjtalk=False
-from data import Data as _Data, playlist_list
+from data import Data as _Data
 from pytube import YouTube, Search, Playlist
 from pytube.exceptions import LiveStreamError
 from apiclient.discovery import build
@@ -34,7 +34,6 @@ Data=_Data(data_dir=argv.path)
 ##utils
 #get_guild_id
 def _getGuildId(message):
-
     if not message.guild is None:
         return message.guild.id
     elif message.author is discord.Member:
@@ -974,3 +973,5 @@ if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])
 else:
     bot.run(argv.token)
+for i in Data.playlists:
+    i.stop(save=True)

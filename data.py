@@ -13,7 +13,6 @@ def getGidlist(datas):
         l.append(d["gid"])
     return l
 
-playlist_list=[]
 class Data():
     def __init__(self, data_dir=""):
         self.data_dir=data_dir
