@@ -144,7 +144,10 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound): return
     logger.error(f'Error:\n{"".join(list(traceback.TracebackException.from_exception(error).format()))}')
     await Send(ctx, "Sorry... Error was huppened...")
-
+@bot.event
+async def on_disconnect():
+    for guild in bot.guilds:
+        Data.getGuildData(guild.id).playlist.save()
 """commands"""
 ## general
 @bot.group(name="va")
@@ -819,6 +822,10 @@ async def showq(ctx):
 @bot.slash_command(name="showq", desecription="Show queued Music.")
 async def showq_sl(ctx):
     await showq(ctx)
+#getsaved
+@bot.command(name="getsaved")
+async def getsaved(ctx):
+    await ctx.send(str(Data.getGuildData(_getGuildId(ctx)).data["playlists"]))
 #del
 @bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music.")
 async def delete(ctx, index:int):
@@ -967,5 +974,3 @@ if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])
 else:
     bot.run(argv.token)
-for i in playlist_list:
-    i.save()
