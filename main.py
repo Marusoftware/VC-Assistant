@@ -766,6 +766,7 @@ async def delete(ctx, index:str):
         return
     if str(index).startswith("save:"):
         Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop(index)
+        await Send(ctx, "Delete Save")
     else:
         index=int(index)-1
         if index == 0:
