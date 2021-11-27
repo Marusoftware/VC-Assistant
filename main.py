@@ -759,21 +759,24 @@ async def save(ctx, id:str):
 async def save_sl(ctx, id:Option(int, description="An ID for save.", required=True)):
     await save(ctx, id)
 #del
-@bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music.")
-async def delete(ctx, index:int):
+@bot.command(name="delete", aliases=["del","d"], desecription="Delete queued Music/Save.")
+async def delete(ctx, index:str):
     if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
         await Send(ctx, 'Music is not enabled.')
         return
-    index-=1
-    if index == 0:
-        await Send(ctx, "If you want to delete Index 1, please use skip.")
-        return
-    if not ctx.guild.voice_client is None:
-        playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
-        playlist.pop(list(playlist.keys())[index])
-        await Send(ctx, "Delete Music")
-@bot.slash_command(name="delete", desecription="Delete queued Music.")
-async def delete_sl(ctx, index:Option(int, "Music Index", required=True)):
+    if str(index).startswith("save:"):
+        Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop(index)
+    else:
+        index=int(index)-1
+        if index == 0:
+            await Send(ctx, "If you want to delete Index 1, please use skip.")
+            return
+        if not ctx.guild.voice_client is None:
+            playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
+            playlist.pop(list(playlist.keys())[index])
+            await Send(ctx, "Delete Music")
+@bot.slash_command(name="delete", desecription="Delete queued Music/Save.")
+async def delete_sl(ctx, index:Option(str, "Music Index", required=True)):
     await delete(ctx, index)
 #movetoend
 @bot.command(name="movetoend", aliases=["mv","m"], desecription="Move queued Music to end.")
@@ -805,7 +808,7 @@ async def loop(ctx, tf:bool=None):
         playlist.loop=tf
     await Send(ctx, f'Loop was now {"enabled" if playlist.loop else "disabled"}!!')
 @bot.slash_command(name="loop", desecription="Loop queued Music.")
-async def loop(ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
+async def loop_sl(ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
     await loop(ctx, tf)
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
