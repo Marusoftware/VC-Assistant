@@ -159,10 +159,10 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound): return
     logger.error(f'Error:\n{"".join(list(traceback.TracebackException.from_exception(error).format()))}')
     await Send(ctx, "Sorry... Error was huppened...")
-@bot.event
-async def on_disconnect():
-    for guild in bot.guilds:
-        Data.getGuildData(guild.id).playlist.stop(save=True)
+#@bot.event
+#async def on_disconnect():
+#    for guild in bot.guilds:
+#        Data.getGuildData(guild.id).playlist.stop(save=True)
 """commands"""
 ## general
 @bot.group(name="va")
