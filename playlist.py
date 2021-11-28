@@ -101,10 +101,14 @@ class Playlist():
             else:
                 break
     def next(self, exp):
-        if self.state!="play" or not exp is None or len(self.channel.channel.members) == 0:
+        if self.state!="play"  or len(self.channel.channel.members) == 0:
             return
         while self.channel.is_playing():
             time.sleep(0.1)
+        if not exp is None:
+            time.sleep(1)
+            self.play()
+            return
         if len(self.playlist)>1:
             data=list(self.playlist.values())[0]
             if self.loop:

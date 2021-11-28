@@ -1,5 +1,8 @@
 from discord import SelectOption, Option, Member, Embed
 import logging, argparse, discord, random, string, re, datetime, os, io, traceback
+from pytube.request import stream
+
+from pytube.streams import Stream
 try:
     import pyopenjtalk, numpy
     from scipy.io import wavfile
@@ -444,19 +447,21 @@ async def get_playlist(ctx, query, service, select=True):
             else:
                 urllist.append(save[item]["url"])
         return urllist
-def play_music(url, channel, user, service="detect", stream=False):
+def play_music(url, channel, user, service="detect", stream=False, stream_ex=False):
     if service == "detect":
         service=service_detection(url)
     if service == "youtube":
         try:
             yt = YouTube(url=url)
             #yt.bypass_age_gate()
-            yt.check_availability()
-            st=yt.streams.get_audio_only()
+            #yt.check_availability()
+            st:Stream=yt.streams.get_audio_only()
+            if stream_ex:
+                path=st.url
             if stream:
                 path=st
             else:
-                path=st.download(output_path=argv.path, filename_prefix=randomstr(5))
+                path=st.download(output_path=argv.path, filename_prefix=randomstr(5), timeout=1000)
         except LiveStreamError:
             path=yt.streaming_data["hlsManifestUrl"]
         except:
@@ -491,7 +496,7 @@ def play_callback(self, data):
         else:
             self.channel.play(discord.FFmpegPCMAudio(data["path"], options='-vn -af loudnorm -hls_allow_cache 1'), after=self.next)
     else:
-        path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5))
+        path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5), timeout=1000)
         self.playlist[list(self.playlist.keys())[0]]["path"]=path
         self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af loudnorm"), after=self.next)
 def service_detection(url):
@@ -532,7 +537,7 @@ class MusicSelction(Select):
     async def play(self, interaction):
         text=""
         for value in self.values:
-            status=play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1)
+            status=play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1, stream_ex=len(self.values)>5)
             text+=await status2msg(status, value)
         await interaction.message.edit(content=text, view=None)
     async def cancel(self, interaction, data):
@@ -631,7 +636,7 @@ async def play(ctx, *query):
             await message.edit(content=f'Prepareing playing Musics...', view=None)
         text=""
         for value in urllist:
-            status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1)
+            status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1, stream_ex=len(urllist)>5)
         await status2msg(0,msg=message, value=(None if len(urllist)<2 else f'\n And {len(urllist)-1} musics were added to queue'))
     elif service == "file":
         if len(ctx.message.attachments) != 0:
