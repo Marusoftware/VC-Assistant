@@ -566,7 +566,7 @@ async def join(ctx, channel:discord.VoiceChannel=None, restore:bool=True):
         await Send(ctx, 'Music is not enabled.', ephemeral=True)
         return
     if isinstance(ctx.author, Member):
-        if ctx.author.voice is None:
+        if ctx.author.voice is None and channel is None:
             await Send(ctx, "Please assign or enter to VC.", ephemeral=True)
         else:
             if channel is None:
@@ -637,7 +637,7 @@ async def play(ctx, *query):
         text=""
         for value in urllist:
             status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1, stream_ex=len(urllist)>5)
-        await status2msg(0,msg=message, value=(None if len(urllist)<2 else f'\n And {len(urllist)-1} musics were added to queue'))
+        await status2msg(0,msg=message, value=(None if len(urllist)<2 else f'And {len(urllist)-1} musics were added to queue'))
     elif service == "file":
         if len(ctx.message.attachments) != 0:
             file=ctx.message.attachments[0]
