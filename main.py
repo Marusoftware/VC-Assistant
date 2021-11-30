@@ -22,6 +22,8 @@ argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot tha
 argparser.add_argument("-log_level", action="store", type=int, dest="log_level", default=20 ,help="set Log level.(0-50)")
 argparser.add_argument("-token", action="store", type=str, dest="token", required=True ,help="discord bot token")
 argparser.add_argument("-path", action="store", type=str, dest="path", required=False ,help="data path", default="")
+argparser.add_argument("-spot", action="store", type=str, dest="spot", required=False ,help="Spotify Client ID", default="")
+argparser.add_argument("-spot_secret", action="store", type=str, dest="spotse", required=False ,help="Spotify Client Secret", default="")
 ##argparser.add_argument("--daemon", dest="daemon", help="Start in daemon mode.", action="store_true")
 argv=argparser.parse_args()
 #setting logging
@@ -377,6 +379,20 @@ async def search_music(ctx, query, service):
                     title=title[0:90]
                 urllist.append(SelectOption(label=title,value=f'https://www.nicovideo.jp/watch/{item["contentId"]}'))
             return urllist
+    elif service == "search-spotify":
+        import spotipy
+        from spotipy.oauth2 import SpotifyClientCredentials
+        client_id=argv.spot
+        client_secret=argv.spotse
+        spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
+        query=query.replace("spot:","")
+        results=spotify.search(query, limit=5, type="track")
+        for item in results["tracks"]["items"]:
+            title=item["name"]
+            if len(title)>90:
+                title=title[0:90]
+            urllist.append(SelectOption(label=item, value=f'{item["external_urls"]["spotify"]}'))
+        return urllist
     else:
         key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
         if key == "none":
@@ -480,6 +496,16 @@ def play_music(url, channel, user, service="detect", stream=False, stream_ex=Fal
     elif service == "file":
         import ffmpeg
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(url)["streams"][0]["duration"])), stream, url, user, url)
+    elif service == "spotify":
+        from savify import Savify
+        from savify.types import Format, Quality
+        from savify.utils import PathHolder
+        from savify.logger import Logger
+        rstr=randomstr(5)
+        savify = Savify(api_credentials=(client_id, client_secret), quality=Quality.Worst, download_format=Format.MP3, path_holder=PathHolder(data_path="./", downloads_path="./"), logger=Logger(), group="rstr")
+        savify.download(url)
+        path=os.path.join(rstr,os.listdir(rstr)[0])
+        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(path)["streams"][0]["duration"])), stream, url, user, url)
     else:
         return -1
     if channel.is_playing():
@@ -506,7 +532,11 @@ def service_detection(url):
         return "nico"
     elif re.match("https?://(\S+\.)?youtube\.com/playlist\?list=(\S)+",url):
         return "playlist-youtube"
+    elif re.match("https?://open.spotify.com/track/(\S)+",url):
+        return "spotify"
     elif re.match("nico:(\S)+", url):
+        return "search-nico"
+    elif re.match("spot:(\S)+", url):
         return "search-nico"
     elif re.match("all:(\S)+", url):
         return "playlist-youtube-all"
