@@ -535,7 +535,7 @@ def service_detection(url):
     elif re.match("nico:(\S)+", url):
         return "search-nico"
     elif re.match("spot:(\S)+", url):
-        return "search-spot"
+        return "search-spotify"
     elif re.match("all:(\S)+", url):
         return "playlist-youtube-all"
     elif re.match("save:(\S)+", url):
