@@ -409,16 +409,15 @@ async def search_music(ctx, query, service):
                 else:
                     live=None
                 title=yt.title
-                if len(yt.title)>80:
-                    title=yt.title[0:80]
+                if len(yt.title)>90:
+                    title=yt.title[0:90]
                 else:
                     title=yt.title
-                if len(yt.author)>18:
-                    channel=yt.author[0:18]
+                if len(yt.author)>90:
+                    channel=yt.author[0:90]
                 else:
                     channel=yt.author
-                title=f'[{channel}]{title}'
-                urllist.append(SelectOption(label=title,value=yt.watch_url, emoji=live))
+                urllist.append(SelectOption(label=title,value=yt.watch_url, emoji=live, description=channel))
             return urllist
         else:
             youtube = build('youtube', 'v3', developerKey=key)
@@ -428,16 +427,15 @@ async def search_music(ctx, query, service):
             for item in url:
                 if item['id']['kind'] == 'youtube#video':
                     vid_info=item["snippet"]
-                    if len(vid_info["title"])>80:
-                        title=vid_info["title"][0:80]
+                    if len(vid_info["title"])>90:
+                        title=vid_info["title"][0:90]
                     else:
                         title=vid_info["title"]
-                    if len(vid_info["channelTitle"])>18:
-                        channel=vid_info["channelTitle"][0:18]
+                    if len(vid_info["channelTitle"])>90:
+                        channel=vid_info["channelTitle"][0:90]
                     else:
                         channel=vid_info["channelTitle"]
-                    title=f'[{channel}]{title}'
-                    urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'))
+                    urllist.append(SelectOption(label=title,value=f'https://www.youtube.com/watch?v={item["id"]["videoId"]}', description=channel))
             return urllist
 async def get_playlist(ctx, query, service, select=True):
     urllist=[]
@@ -750,7 +748,7 @@ async def np(ctx):
         user=playlist.playlist[music]["user"]
         embed.set_author(name=user, icon_url=user.avatar)
         if playlist.loop:
-            embed.add_field(name=":repeat:", value="Loop was Enabled!!")
+            embed.add_field(name="Loop", value="Enabled!!:repeat:")
         await Send(ctx, embed=embed)
     else:
         await Send(ctx, "Now, No Music is playing...")
