@@ -391,7 +391,7 @@ async def search_music(ctx, query, service):
             title=item["name"]
             if len(title)>90:
                 title=title[0:90]
-            urllist.append(SelectOption(label=item, value=f'{item["external_urls"]["spotify"]}'))
+            urllist.append(SelectOption(label=title, value=f'{item["external_urls"]["spotify"]}'))
         return urllist
     else:
         key=Data.getGuildData(_getGuildId(ctx)).getProperty("keyYoutube")
