@@ -93,13 +93,14 @@ class Playlist():
         self.stopwatch.start()
         self.state="play"
     def _delfile(self, path):
-        while os.path.exists(path):
-            try:
-                os.remove(path)
-            except:
-                time.sleep(1)
-            else:
-                break
+        if type(path) == str: 
+            while os.path.exists(path):
+                try:
+                    os.remove(path)
+                except:
+                    time.sleep(1)
+                else:
+                    break
     def next(self, exp):
         if self.state!="play"  or len(self.channel.channel.members) == 0:
             return
