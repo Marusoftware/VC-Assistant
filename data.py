@@ -101,6 +101,7 @@ class GuildData():
                 if pt.pattern == pattern:
                     self.data["matcher_dict"].pop(pt)
                     break
+        self._syncData()
     def getPlaylist(self):
         return self.playlist
     def getTTSChannels(self):
@@ -112,3 +113,4 @@ class GuildData():
         else:
             self.data["TTSChannels"].append(channel.id)
             return True
+        self._syncData()
