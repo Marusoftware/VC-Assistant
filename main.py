@@ -499,6 +499,8 @@ def play_music(url, channel, user, service="detect", stream=False, stream_ex=Fal
         from savify.types import Format, Quality
         from savify.utils import PathHolder
         from savify.logger import Logger
+        client_id=argv.spot
+        client_secret=argv.spotse
         rstr=randomstr(5)
         savify = Savify(api_credentials=(client_id, client_secret), quality=Quality.Worst, download_format=Format.MP3, path_holder=PathHolder(data_path="./", downloads_path="./"), logger=Logger(), group="rstr")
         savify.download(url)
