@@ -495,17 +495,14 @@ def play_music(url, channel, user, service="detect", stream=False, stream_ex=Fal
         import ffmpeg
         Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(url)["streams"][0]["duration"])), stream, url, user, url)
     elif service == "spotify":
-        from savify import Savify
-        from savify.types import Format, Quality
-        from savify.utils import PathHolder
-        from savify.logger import Logger
+        import spotipy
+        from spotipy.oauth2 import SpotifyClientCredentials
         client_id=argv.spot
         client_secret=argv.spotse
-        rstr=randomstr(5)
-        savify = Savify(api_credentials=(client_id, client_secret), quality=Quality.Worst, download_format=Format.MP3, path_holder=PathHolder(data_path="./", downloads_path="./"), logger=Logger(), group="rstr")
-        savify.download(url)
-        path=os.path.join(rstr,os.listdir(rstr)[0])
-        Data.getGuildData(_getGuildId(channel)).getPlaylist().add(int(float(ffmpeg.probe(path)["streams"][0]["duration"])), stream, url, user, url)
+        spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
+        track=spotify.track(url)
+        music=search_music(channel, track["album"]["name"], "search-youtube")[0]
+        play_music(music.value, channel, user, service="youtube")
     else:
         return -1
     if channel.is_playing():
