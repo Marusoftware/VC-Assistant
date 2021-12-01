@@ -8,5 +8,5 @@ psycopg2-binary
 ffmpeg-python
 pyopenjtalk
 scipy
-savify
+#savify
 spotipy
