@@ -557,6 +557,7 @@ class MusicSelction(Select):
             await interaction.response.send_message(content=f'Is this OK? \n "{self.values[0]}" ', view=view)
         else:
             await interaction.message.edit(content=f'Prepareing playing Musics...', view=None)
+            await self.play(interaction)
     async def ok(self, interaction, data):
         await interaction.message.delete()
         await data.message.edit(content=f'Prepareing playing Music... \n {self.values[0]}', view=None)
