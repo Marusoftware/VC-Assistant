@@ -517,11 +517,11 @@ def play_callback(self, data):
         if ".m3u8" in data["path"]:
             self.channel.play(discord.FFmpegPCMAudio(data["path"], options="-vn -hls_allow_cache 1"), after=self.next)
         else:
-            self.channel.play(discord.FFmpegPCMAudio(data["path"], options='-vn -af loudnorm -hls_allow_cache 1'), after=self.next)
+            self.channel.play(discord.FFmpegPCMAudio(data["path"], options='-vn -af loudnorm -hls_allow_cache 1 -fflags +discardcorrupt'), after=self.next)
     else:
         path=data["path"].download(output_path=argv.path, filename_prefix=randomstr(5), timeout=1000)
         self.playlist[list(self.playlist.keys())[0]]["path"]=path
-        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af loudnorm"), after=self.next)
+        self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af loudnorm -fflags +discardcorrupt"), after=self.next)
 def service_detection(url):
     if re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
         return "youtube"
