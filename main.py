@@ -461,7 +461,7 @@ async def get_playlist(ctx, query, service, select=True):
             else:
                 urllist.append(save[item]["url"])
         return urllist
-def play_music(url, channel, user, service="detect", stream=False, stream_ex=False):
+async def play_music(url, channel, user, service="detect", stream=False, stream_ex=False):
     if service == "detect":
         service=service_detection(url)
     if service == "youtube":
@@ -501,8 +501,8 @@ def play_music(url, channel, user, service="detect", stream=False, stream_ex=Fal
         client_secret=argv.spotse
         spotify = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
         track=spotify.track(url)
-        music=search_music(channel, track["album"]["name"], "search-youtube")[0]
-        play_music(music.value, channel, user, service="youtube")
+        music=await search_music(channel, track["album"]["name"], "search-youtube")[0]
+        await play_music(music.value, channel, user, service="youtube")
     else:
         return -1
     if channel.is_playing():
@@ -565,7 +565,7 @@ class MusicSelction(Select):
     async def play(self, interaction):
         text=""
         for value in self.values:
-            status=play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1, stream_ex=len(self.values)>5)
+            status=await play_music(value, interaction.guild.voice_client, interaction.user, stream=len(self.values)>1, stream_ex=len(self.values)>5)
             text+=await status2msg(status, value)
         await interaction.message.edit(content=text, view=None)
     async def cancel(self, interaction, data):
@@ -606,7 +606,7 @@ async def join(ctx, channel:discord.VoiceChannel=None, restore:bool=True):
                 if type(state) == dict and restore:
                     msg=await Send(ctx, "Connected to VC(And restoreing latest session.)")
                     for music in state:
-                        play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music]["user"]), stream=len(state)>1)
+                        await play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music]["user"]), stream=len(state)>1, stream_ex=len(self.values)>5)
                     await msg.edit("Connected to VC(And restored latest session.)")
                     Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop("saved")
                     Data.getGuildData(_getGuildId(ctx))._syncData()
@@ -637,7 +637,7 @@ async def play(ctx, *query):
     service=service_detection(query)
     if service in ["youtube","nico"]:
         msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
-        status=play_music(query, ctx.guild.voice_client, ctx.author, service)
+        status=await play_music(query, ctx.guild.voice_client, ctx.author, service)
         await status2msg(status, msg=msg)
     elif service in ["playlist-youtube", "save-select"]:
         query=query.replace("savel:","")
@@ -664,13 +664,13 @@ async def play(ctx, *query):
             await message.edit(content=f'Prepareing playing Musics...', view=None)
         text=""
         for value in urllist:
-            status=play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1, stream_ex=len(urllist)>5)
+            status=await play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1, stream_ex=len(urllist)>5)
         await status2msg(0,msg=message, value=(None if len(urllist)<2 else f'And {len(urllist)-1} musics were added to queue'))
     elif service == "file":
         if len(ctx.message.attachments) != 0:
             file=ctx.message.attachments[0]
             msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
-            status=play_music(file.url, ctx.guild.voice_client, ctx.author, "file", file.filename)
+            status=await play_music(file.url, ctx.guild.voice_client, ctx.author, "file", file.filename)
             await status2msg(status, msg=msg)
         else:
             msg = await Send(ctx, content="Wrong Attachment.(just one attachment is required.)", mention_author=True)
