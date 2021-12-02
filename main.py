@@ -472,7 +472,7 @@ def play_music(url, channel, user, service="detect", stream=False, stream_ex=Fal
             st:Stream=yt.streams.get_audio_only()
             if stream_ex:
                 path=st.url
-            if stream:
+            elif stream:
                 path=st
             else:
                 path=st.download(output_path=argv.path, filename_prefix=randomstr(5), timeout=1000)
