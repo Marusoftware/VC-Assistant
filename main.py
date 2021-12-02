@@ -606,7 +606,7 @@ async def join(ctx, channel:discord.VoiceChannel=None, restore:bool=True):
                 if type(state) == dict and restore:
                     msg=await Send(ctx, "Connected to VC(And restoreing latest session.)")
                     for music in state:
-                        await play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music]["user"]), stream=len(state)>1, stream_ex=len(self.values)>5)
+                        await play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music]["user"]), stream=len(state)>1, stream_ex=len(state)>5)
                     await msg.edit("Connected to VC(And restored latest session.)")
                     Data.getGuildData(_getGuildId(ctx)).data["playlists"].pop("saved")
                     Data.getGuildData(_getGuildId(ctx))._syncData()
