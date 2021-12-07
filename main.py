@@ -1,5 +1,5 @@
-from discord import SelectOption, Option, Member, Embed, EmbeddedActivity
-import logging, argparse, discord, random, string, re, datetime, os, io, traceback
+from discord import SelectOption, Option, Member, Embed, EmbeddedActivity, guild
+import logging, argparse, discord, random, string, re, datetime, os, io, traceback, typing
 from pytube.request import stream
 
 from pytube.streams import Stream
@@ -230,7 +230,44 @@ async def feature_com(ctx, subcommand:Option(str, "Subcommand", required=True, c
             await ctx.respond("Key was seted.", ephemeral=True)
         Data.getGuildData(_getGuildId(ctx)).setProperty("key"+value,key)
         await ctx.respond("Key was seted.", ephemeral=True)
-
+## Perm
+@bot.command(name="perm", description="Set Permission to User")
+async def perm(ctx, user:typing.Optional[discord.Member]=None, role:typing.Optional[discord.Role]=None):
+    view=View(timeout=0)
+    if not user is None:
+        permlist=[]
+        guild_data=Data.getGuildData(_getGuildId(ctx)).data["perms"]
+        for perm in Data.perms:
+            permlist.append(SelectOption(label=perm, value=perm, description=Data.perms[perm]["desc"], default=(Data.perms[perm]["def"])))
+        view.add_item(PermSelction("perm", user, permlist, ctx.author))
+        await Send(ctx, f"Select Permission to grant {user.mention}.", view=view, ephemeral=True)
+    if not role is None:
+        permlist=[]
+        guild_data=Data.getGuildData(_getGuildId(ctx)).data["perms"]
+        for perm in Data.perms:
+            permlist.append(SelectOption(label=perm, value=perm, description=Data.perms[perm]["desc"], default=(Data.perms[perm]["def"])))
+        view.add_item(PermSelction("perm", role, permlist, ctx.author))
+        await Send(ctx, f"Select Permission to grant {role.mention}.", view=view, ephemeral=True)
+@bot.slash_command(name="permission", description="Set Permission to User")
+async def perm_sl(ctx, user:Option(discord.Member, description="An User who would be grant permission", required=False, default=None), role:Option(discord.Role, description="An Role who would be grant permission", required=False, default=None)):
+    await perm(ctx, user, role)
+@bot.user_command(name="permission", description="Set Permission to User")
+async def perm_usr(ctx, user):
+    await perm(ctx, user)
+class PermSelction(Select):
+    def __init__(self, custom_id:str, user, permlist:list, author, user_type=typing.Literal["user","role"]):
+        self.permlist=permlist
+        self.target_user=user
+        self.author_user=author
+        self.target_user_type=user_type
+        super().__init__(custom_id=custom_id, options=self.permlist, max_values=len(self.permlist), placeholder="Select Permission.")
+    async def callback(self, interaction):
+        if self.author_user.id != interaction.user.id:
+            return
+        guild_data=Data.getGuildData(_getGuildId(interaction))
+        guild_data.data["perms"][f'{self.target_user_type}-{self.target_user.id}']=self.values
+        guild_data._syncData()
+        await interaction.response.send_message(content=f'Granted.', ephemeral=True)
 ## ping
 @bot.command(name="ping", desecription="Ping! Pong!")
 async def ping(ctx):

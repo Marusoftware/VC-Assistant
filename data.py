@@ -18,6 +18,7 @@ class Data():
         self.data_dir=data_dir
         self.loaded_guilds={}
         self.playlists=[]
+        self.perms={"DJ":{"desc":"", "def":False}}
     def getGuildData(self, guild_id):
         if guild_id in self.loaded_guilds:
             return self.loaded_guilds[guild_id]
@@ -30,7 +31,9 @@ class GuildData():
         self.data_dir=data_dir#HERE:Guild DB Directory
         self.guild_id=guild_id
         self.data_path=os.path.join(self.data_dir,str(guild_id)+".guild")
-        self.default_data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True, "keyYoutube":"none", "TTSChannels":[], "enTTS":False, "playlists":{}}
+        self.default_data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True,
+                             "keyYoutube":"none", "TTSChannels":[], "enTTS":False, "playlists":{},
+                             "perms":{}}
         if db_url:
             self.conn = psycopg2.connect(db_url)
             cursor=self.conn.cursor()
