@@ -18,6 +18,7 @@ class Data():
         self.data_dir=data_dir
         self.loaded_guilds={}
         self.playlists=[]
+        self.command_perms={}
         self.perms={"DJ":{"desc":"", "def":False}}
     def getGuildData(self, guild_id):
         if guild_id in self.loaded_guilds:
@@ -112,8 +113,9 @@ class GuildData():
     def switchTTSChannel(self, channel):
         if channel.id in self.data["TTSChannels"]:
             self.data["TTSChannels"].remove(channel.id)
+            self._syncData()
             return False
         else:
             self.data["TTSChannels"].append(channel.id)
+            self._syncData()
             return True
-        self._syncData()

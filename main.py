@@ -109,6 +109,18 @@ async def status2msg(status, value=None, msg=None, options={}):
     else:
         await msg.edit(text, **options)
 
+def check_permission(ctx):
+    perms=Data.getGuildData(_getGuildId(ctx)).data["perms"]
+    if not ctx.command.name in Data.command_perms: return True
+    if not hasattr(ctx.author, "guild_permissions"): return True
+    if ctx.author.guild_permissions.administrator: return True
+    if "user-"+str(ctx.author.id) in perms:
+        if Data.command_perms[ctx.command.name] in perms["user-"+str(ctx.author.id)]: return True
+    for role in ctx.author.roles:
+        if "role-"+str(role.id) in perms:
+            if Data.command_perms[ctx.command.name] in perms["role-"+str(role.id)]: return True
+    return False
+
 ##bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
 
@@ -232,6 +244,7 @@ async def feature_com(ctx, subcommand:Option(str, "Subcommand", required=True, c
         await ctx.respond("Key was seted.", ephemeral=True)
 ## Perm
 @bot.command(name="perm", description="Set Permission to User")
+@commands.check(check_permission)
 async def perm(ctx, user:typing.Optional[discord.Member]=None, role:typing.Optional[discord.Role]=None):
     view=View(timeout=0)
     if not user is None:
