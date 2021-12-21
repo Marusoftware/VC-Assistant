@@ -123,6 +123,9 @@ def check_permission(ctx):
 
 ##bot
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
+#add global check
+bot.add_check(check_permission)
+
 
 ##event
 #on_ready
@@ -244,7 +247,6 @@ async def feature_com(ctx, subcommand:Option(str, "Subcommand", required=True, c
         await ctx.respond("Key was seted.", ephemeral=True)
 ## Perm
 @bot.command(name="perm", description="Set Permission to User")
-@commands.check(check_permission)
 async def perm(ctx, user:typing.Optional[discord.Member]=None, role:typing.Optional[discord.Role]=None):
     view=View(timeout=0)
     if not user is None:
