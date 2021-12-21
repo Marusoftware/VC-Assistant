@@ -18,8 +18,8 @@ class Data():
         self.data_dir=data_dir
         self.loaded_guilds={}
         self.playlists=[]
-        self.command_perms={}
-        self.perms={"DJ":{"desc":"", "def":False}}
+        self.command_perms={"matcher":"Matcher"}
+        self.perms={"DJ":{"desc":"", "def":False},"Matcher":{"desc":"An Permission for Matcher", "def":False}}
     def getGuildData(self, guild_id):
         if guild_id in self.loaded_guilds:
             return self.loaded_guilds[guild_id]
