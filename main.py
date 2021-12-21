@@ -287,7 +287,6 @@ class PermSelction(Select):
             return
         guild_data=Data.getGuildData(_getGuildId(interaction))
         guild_data.data["perms"][f'{self.target_user_type}-{self.target_user.id}']=self.values
-        print(guild_data.data["perms"])
         guild_data._syncData()
         await interaction.response.send_message(content=f'Granted.', ephemeral=True)
 ## ping
@@ -842,7 +841,9 @@ async def getsaved(ctx):
     temp=""
     saved=Data.getGuildData(_getGuildId(ctx)).data["playlists"]
     for i in saved:
-        temp+=f'{i} : {",".join(list(saved[i].keys()))}\n'
+        temp+=f'{i} : `{",".join(list(saved[i].keys()))}\n`'
+    if len(temp)==0:
+        temp="Saved music list is not found."
     await Send(ctx, temp)
 @bot.slash_command(name="getsaved")
 async def getsaved_sl(ctx):
