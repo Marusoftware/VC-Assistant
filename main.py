@@ -910,6 +910,21 @@ async def loop(ctx, tf:bool=None):
 @bot.slash_command(name="loop", desecription="Loop queued Music.")
 async def loop_sl(ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
     await loop(ctx, tf)
+#shuffle
+@bot.command(name="shuffle", aliases=["sh"], desecription="Shuffle playing.")
+async def shuffle(ctx, tf:bool=None):
+    if not Data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
+        await Send(ctx, 'Music is not enabled.')
+        return
+    playlist=Data.getGuildData(_getGuildId(ctx)).getPlaylist()
+    if tf is None:
+        playlist.shuffle=not playlist.shuffle
+    else:
+        playlist.shuffle=tf
+    await Send(ctx, f'Shuffle was now {"enabled" if playlist.shuffle else "disabled"}!!')
+@bot.slash_command(name="shuffle", desecription="Shuffle playing.")
+async def shuffle_sl(ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
+    await shuffle(ctx, tf)
 #disconnect
 @bot.command(name="disconnect", aliases=["dc"], desecription="Disconnect from VC")
 async def dc(ctx):

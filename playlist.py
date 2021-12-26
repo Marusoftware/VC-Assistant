@@ -1,4 +1,4 @@
-import time, threading, os
+import time, threading, os, random
 from collections import OrderedDict
 
 class StopWatch():
@@ -48,6 +48,7 @@ class Playlist():
         self.loop=False
         self.move2=False
         self.skiped=False
+        self.shuffle=False
         self.parent=parent
         self.play_callback=play_callback
         self.pause_callback=pause_callback
@@ -112,6 +113,8 @@ class Playlist():
             return
         if len(self.playlist)>1:
             data=list(self.playlist.values())[0]
+            if self.shuffle:
+                random.shuffle(self.playlist)
             if self.loop:
                 #if self.skiped:
                 self.playlist.move_to_end(data["title"])
