@@ -89,6 +89,9 @@ class GuildData():
     def setProperty(self, property_name, value):
         self.data[property_name]=value
         self._syncData()
+    def delProperty(self, property_name):
+        self.data.pop(property_name)
+        self._syncData()
     def getMatcherDict(self):
         return self.data["matcher_dict"]
     def addMatcherDict(self, pattern, check_type, text):

@@ -87,6 +87,10 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None, mention_
     options={}
     if not view is None: options["view"]=view
     if not embed is None: options["embed"]=embed
+    del_after=Data.getGuildData(_getGuildId(ctx)).getProperty("AutoRemove")
+    if del_after:
+        options["delete_after"]=int(del_after)
+        print(del_after)
     if type(ctx) == commands.Context:
         ctx:commands.Context=ctx
         msg=await ctx.send(content=content, mention_author=mention_author, **options)
@@ -222,8 +226,12 @@ async def disable(ctx, feature: str):
 async def apikey(ctx, kind:str, key:str):
     Data.getGuildData(_getGuildId(ctx)).setProperty("key"+kind,key)
     await ctx.send("Key was seted.")
+@featureGrp.command(name="config", desecription="Set API key using in Feather")
+async def apikey(ctx, key:str, value:str):
+    Data.getGuildData(_getGuildId(ctx)).setProperty(key, value)
+    await ctx.send("Config was seted.")
 @bot.slash_command(name="feature", desecription="Setting Feather")
-async def feature_com(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["enable","disable","list","apikey"]), value:Option(str, "Feather or Key Type", required=False), key:Option(str, "API-Key", required=False, default=None)):
+async def feature_com(ctx, subcommand:Option(str, "Subcommand", required=True, choices=["enable","disable","list","apikey","config"]), value:Option(str, "Feather or Key Type or setting name", required=False), key:Option(str, "API-Key or value", required=False, default=None)):
     if subcommand=="enable":
         if value is None:
             await ctx.respond("This subcommand must have value option(feature name).", ephemeral=True)
@@ -241,10 +249,19 @@ async def feature_com(ctx, subcommand:Option(str, "Subcommand", required=True, c
         else:
             await ctx.respond(f'Oh no...Can\'t find such as feature..\nSupported features: {",".join(list(features.keys()))}', ephemeral=True)
     elif subcommand=="apikey":
-        if apikey is None:
+        if key is None:
+            Data.getGuildData(_getGuildId(ctx)).setProperty("key"+value)
+            await ctx.respond("Key was deleted.", ephemeral=True)
+        else:
+            Data.getGuildData(_getGuildId(ctx)).setProperty("key"+value,key)
             await ctx.respond("Key was seted.", ephemeral=True)
-        Data.getGuildData(_getGuildId(ctx)).setProperty("key"+value,key)
-        await ctx.respond("Key was seted.", ephemeral=True)
+    elif subcommand=="config":
+        if key is None:
+            Data.getGuildData(_getGuildId(ctx)).setProperty(value)
+            await ctx.respond("Setting was deleted.", ephemeral=True)
+        else:
+            Data.getGuildData(_getGuildId(ctx)).setProperty(value,key)
+            await ctx.respond("Setting was seted.", ephemeral=True)
 ## Perm
 @bot.command(name="perm", description="Set Permission to User")
 async def perm(ctx, user:typing.Optional[discord.Member]=None, role:typing.Optional[discord.Role]=None):
