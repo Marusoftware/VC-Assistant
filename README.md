@@ -4,7 +4,7 @@
 VCで、あなたをお手伝いするdiscord用のボットです。
 次のような機能があります。
 - 正規表現([ここ](https://docs.python.org/ja/3/library/re.html#regular-expression-syntax)を参照)にマッチしたときにメッセージを送信
-- VCで音楽を流します。   
+- VC(ボイスチャット)で音楽を再生する    
 # 使用方法
 まず、discord bot tokenを取得してください。([ここ](https://discord.com/developers/)から取得可能です。)    
 なお、このボットでは、intentを採用しています。Presence Intent(Developer Potal内)を有効にする必要があります。   
