@@ -1,4 +1,3 @@
-from random import choices
 from discord import SelectOption, Option, Message, Intents, SlashCommandGroup
 import logging, argparse, discord, os, traceback, typing
 from data import Data as _Data
@@ -33,6 +32,7 @@ def prefix_setter(bot, message):
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
 #database
 bot.data=_Data(data_dir=argv.path)
+bot.argv=argv
 import lib
 lib.Data=bot.data
 #add global check
@@ -49,7 +49,7 @@ def check_permission(ctx):
     return False
 bot.add_check(check_permission)
 #load modules
-for ext in ["matcher"]:
+for ext in ["matcher", "music"]:
     bot.load_extension(f'modules.{ext}')
 
 class Core(commands.Cog):

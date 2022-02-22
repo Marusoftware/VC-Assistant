@@ -114,7 +114,7 @@ class Playlist():
         if len(self.playlist)>1:
             data=list(self.playlist.values())[0]
             if self.shuffle:
-                random.shuffle(self.playlist)
+                self.playlist.move_to_end(random.choice(self.playlist.keys()), False)
             if self.loop:
                 #if self.skiped:
                 self.playlist.move_to_end(data["title"])
