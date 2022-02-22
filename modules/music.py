@@ -1,8 +1,7 @@
 from discord.ext import commands
-from discord import SelectOption, Option, Member, Embed, EmbeddedActivity, guild
-import logging, argparse, discord, random, string, re, datetime, os, io, traceback, typing
+from discord import SelectOption, Option, Member, Embed, EmbeddedActivity
+import discord, re, datetime
 from pytube.streams import Stream
-from data import Data as _Data
 from pytube import YouTube, Search, Playlist
 from pytube.exceptions import LiveStreamError
 from apiclient.discovery import build
@@ -61,7 +60,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
         self.data=bot.data
     ##Event
     #Auto disconnect
-    @commands.Cog.listener(name='on_message')
+    @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         playlist = self.data.getGuildData(_getGuildId(member)).getPlaylist()
         try:
