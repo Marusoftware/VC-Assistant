@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord import SelectOption, Option, Member, Embed, EmbeddedActivity
+from discord import SelectOption, Option, Member, Embed
 import discord, re, datetime
 from pytube.streams import Stream
 from pytube import YouTube, Search, Playlist
@@ -8,8 +8,6 @@ from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View, Button
 from lib import _getGuildId, Send, randomstr
-
-
 
 class MusicSelction(Select):
     def __init__(self, custom_id:str, urllist:list, parent, max_values=1):
@@ -347,7 +345,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                     if type(state) == dict and restore:
                         msg=await Send(ctx, "Connected to VC(And restoreing latest session.)")
                         for music in state:
-                            await self.play_music(state[music]["url"], ctx.guild.voice_client, bot.get_user(state[music]["user"]), stream=len(state)>1, stream_ex=len(state)>5)
+                            await self.play_music(state[music]["url"], ctx.guild.voice_client, self.bot.get_user(state[music]["user"]), stream=len(state)>1, stream_ex=len(state)>5)
                         await msg.edit("Connected to VC(And restored latest session.)")
                         self.data.getGuildData(_getGuildId(ctx)).data["playlists"].pop("saved")
                         self.data.getGuildData(_getGuildId(ctx))._syncData()
@@ -485,7 +483,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
         playlist=data.getPlaylist()
         if len(playlist.playlist)!=0:
             music=list(playlist.playlist.keys())[0]
-            embed=Embed(title=playlist.playlist[music]["title"], description=f'{state2emoji(playlist.state)}{StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}')
+            embed=Embed(title=playlist.playlist[music]["title"], description=f'{self.state2emoji(playlist.state)}{self.StoTime(playlist.stopwatch.getTime(),playlist.playlist[music]["length"])}')
             user=playlist.playlist[music]["user"]
             embed.set_author(name=user, icon_url=user.avatar)
             if playlist.loop:

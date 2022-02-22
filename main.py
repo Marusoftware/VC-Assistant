@@ -49,7 +49,7 @@ def check_permission(ctx):
     return False
 bot.add_check(check_permission)
 #load modules
-for ext in ["matcher", "music"]:
+for ext in ["matcher", "music", "activity"]:
     bot.load_extension(f'modules.{ext}')
 
 class Core(commands.Cog):
