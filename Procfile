@@ -1,1 +1,1 @@
-run_bot: python main.py -token env
+run_bot: python main.py env

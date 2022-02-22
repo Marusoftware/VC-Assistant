@@ -1,12 +1,9 @@
-git+https://github.com/Pycord-Development/pycord#egg=py-cord[voice]
+git+https://github.com/Pycord-Development/pycord#egg=py-cord[voice,speed]
 git+https://github.com/pytube/pytube
-youtube_dl
 aiofiles
 google-api-python-client
-https://github.com/tasuren/niconico_dl/releases/download/v2.2.4/niconico_dl-2.2.4-py3-none-any.whl
+https://github.com/tasuren/niconico_dl/releases/download/v2.2.7/niconico_dl-2.2.7.tar.gz
 psycopg2-binary
 ffmpeg-python
 pyopenjtalk
 scipy
-#savify
-spotipy

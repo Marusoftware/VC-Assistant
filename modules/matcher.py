@@ -1,4 +1,3 @@
-from lib2to3.pgen2.token import OP
 from discord.ext import commands
 from discord import Option, SlashCommandGroup
 from lib import _getGuildId, Send
@@ -52,7 +51,7 @@ class Matcher(commands.Cog, name="matcher", description="Send message when find 
                 txt = plist["on_member_join"][1].replace("$member",member.mention)
                 await member.guild.system_channel.send(txt)
     #add sub command
-    @matcher.command("add", description="Add word to dict.")
+    @matcher.command(name="add", description="Add word to dict.")
     async def add(self, ctx, pattern:str, check_type:str="search", text:str="Hello World"):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
             await Send(ctx, 'Matcher is not enabled.')
@@ -68,22 +67,22 @@ class Matcher(commands.Cog, name="matcher", description="Send message when find 
         else:
             self.data.getGuildData(_getGuildId(ctx)).addMatcherDict(pattern, check_type, text)
         await Send(ctx, "Add word to dict.")
-    @matcher_sl.command("add", description="Add word to dict.")
-    async def add_sl(self, ctx, pattern:Option(str, "Pattern(regax)", required=True), check_type:Option(str, "Check Type", choices=["match","search","fullmatch","event"], default="search"), text:Option(str, "Text", required=True)):
+    @matcher_sl.command(name="add", description="Add word to dict.")
+    async def add_sl(self, ctx, pattern:Option(str, "Pattern(regax)", required=True), text:Option(str, "Text", required=True), check_type:Option(str, "Check Type", choices=["match","search","fullmatch","event"], default="search")):
         await self.add(ctx, pattern, check_type, text)
     #del sub command
-    @matcher.command("del", desecription="Del word from dict.")
+    @matcher.command(name="del", desecription="Del word from dict.")
     async def delete(self, ctx, pattern:str, is_event:bool=False):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
             await Send(ctx, 'Matcher is not enabled.')
             return
         self.data.getGuildData(_getGuildId(ctx)).delMatcherDict(pattern, is_event)
         await Send(ctx, "Del word from dict.")
-    @matcher_sl.command("del", description="Del word from dict.")
+    @matcher_sl.command(name="del", description="Del word from dict.")
     async def del_sl(self, ctx, pattern:Option(str, "Pattern(regax)", required=True), is_event:Option(bool, "Is it Event?", default=False, required=False)):
         await self.delete(ctx, pattern, is_event)
     #list sub command
-    @matcher.command("list", desecription="List word in dict.")
+    @matcher.command(name="list", desecription="List word in dict.")
     async def matcher_list(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
             await Send(ctx, 'Matcher is not enabled.')
@@ -95,7 +94,7 @@ class Matcher(commands.Cog, name="matcher", description="Send message when find 
             i+=1
             text+=f'{i} {pattern.pattern if type(pattern) == re.Pattern else pattern} {plist[pattern][0]} {plist[pattern][1]}\n'
         await Send(ctx, text)
-    @matcher_sl.command("List", description="List word in dict.")
+    @matcher_sl.command(name="list", description="List word in dict.")
     async def list_sl(self, ctx):
         await self.matcher_list(ctx)
 

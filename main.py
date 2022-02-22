@@ -4,12 +4,12 @@ import logging, argparse, discord, os, traceback, typing
 from data import Data as _Data
 from discord.ui import Select, View
 from discord.ext import commands
-from lib import Data, _getGuildId, Send
+from lib import _getGuildId, Send
 
 #parse argv
 argparser = argparse.ArgumentParser("VC Assistant Bot", description="The Bot that assistant VC.")
 argparser.add_argument("-log_level", action="store", type=int, dest="log_level", default=20 ,help="set Log level.(0-50)")
-argparser.add_argument("-token", action="store", type=str, dest="token", required=True ,help="discord bot token")
+argparser.add_argument("token", action="store", type=str, help="discord bot token")
 argparser.add_argument("-path", action="store", type=str, dest="path", required=False ,help="data path", default="")
 argparser.add_argument("-spot", action="store", type=str, dest="spot", required=False ,help="Spotify Client ID", default="")
 argparser.add_argument("-spot_secret", action="store", type=str, dest="spotse", required=False ,help="Spotify Client Secret", default="")
@@ -33,6 +33,8 @@ def prefix_setter(bot, message):
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
 #database
 bot.data=_Data(data_dir=argv.path)
+import lib
+lib.Data=bot.data
 #add global check
 def check_permission(ctx):
     perms=bot.data.getGuildData(_getGuildId(ctx)).data["perms"]
@@ -48,7 +50,7 @@ def check_permission(ctx):
 bot.add_check(check_permission)
 #load modules
 for ext in ["matcher"]:
-    bot.load_extension(ext, "modules")
+    bot.load_extension(f'modules.{ext}')
 
 class Core(commands.Cog):
     def __init__(self, bot):
@@ -123,71 +125,78 @@ class Core(commands.Cog):
     @feature_sl.command(name="disable", desecription="Disable Feather")
     async def disable_sl(self, ctx, feature:Option(str, "Feature name", choices=list(features.keys()), required=True)):
         await self.disable(ctx, feature)
-    #Here comes TODO
+    #feature - apikey
     @feature.command(name="apikey", desecription="Set API key using in Feather")
-    async def apikey(ctx, kind:str, key:str):
-        Data.getGuildData(_getGuildId(ctx)).setProperty("key"+kind,key)
-        await ctx.send("Key was seted.")
-    @feature_sl.command(name="disable", desecription="Disable Feather")
-    async def disable_sl(self, ctx, feature:Option(str, "Feature name", choices=list(features.keys()), required=True)):
-        await self.disable(ctx, feature)
-    @featureGrp.command(name="config", desecription="Set API key using in Feather")
-    async def apikey(ctx, key:str, value:str):
-        Data.getGuildData(_getGuildId(ctx)).setProperty(key, value)
-        await ctx.send("Config was seted.")
-    @feature_sl.command(name="disable", desecription="Disable Feather")
-    async def disable_sl(self, ctx, feature:Option(str, "Feature name", choices=list(features.keys()), required=True)):
-        await self.disable(ctx, feature)
-    
-    ## Perm
-    @bot.command(name="perm", description="Set Permission to User")
-    async def perm(ctx, user:typing.Optional[discord.Member]=None, role:typing.Optional[discord.Role]=None):
+    async def apikey(self, ctx, kind:str, key:str):
+        self.data.getGuildData(_getGuildId(ctx)).setProperty("key"+kind,key)
+        await Send(ctx, "Key was seted.")
+    @feature_sl.command(name="apikey", desecription="Set API key using in Feather")
+    async def apikey_sl(self, ctx, kind:Option(str, "Keyname", required=True), key:Option(str, "Key", required=True)):
+        await self.apikey(ctx, kind, key)
+    #feature - config
+    @feature.command(name="config", desecription="Set API key using in Feather")
+    async def config(self, ctx, key:str, value:str=None):
+        if value is None:
+            await Send(ctx, f"{key}: {self.data.getGuildData(_getGuildId(ctx)).getProperty(key)}")
+        else:
+            self.data.getGuildData(_getGuildId(ctx)).setProperty(key, value)
+            await Send(ctx, "Config was seted.")
+    @feature_sl.command(name="config", desecription="Disable Feather")
+    async def config_sl(self, ctx, key:Option(str, "key", required=True), value:Option(str, "value", required=False, default=None)):
+        await self.config(ctx, key, value)
+    #Perm
+    @va.command(name="permission", description="Set Permission to User", aliases=["perm"])
+    async def perm(self, ctx, user:typing.Optional[discord.Member]=None, role:typing.Optional[discord.Role]=None):
         view=View(timeout=0)
         if not user is None:
             permlist=[]
             try:
-                guild_data=Data.getGuildData(_getGuildId(ctx)).data["perms"]["user-"+str(user.id)]
+                guild_data=self.data.getGuildData(_getGuildId(ctx)).data["perms"]["user-"+str(user.id)]
             except KeyError:
                 guild_data={}
-            for perm in Data.perms:
-                permlist.append(SelectOption(label=perm, value=perm, description=Data.perms[perm]["desc"], default=((perm in guild_data) if perm in guild_data else Data.perms[perm]["def"])))
-            view.add_item(PermSelction("perm", user, permlist, ctx.author, "user"))
+            for perm in self.data.perms:
+                permlist.append(SelectOption(label=perm, value=perm, description=self.data.perms[perm]["desc"], default=((perm in guild_data) if perm in guild_data else self.data.perms[perm]["def"])))
+            view.add_item(PermSelction(self.data, "perm", user, permlist, ctx.author, "user"))
             await Send(ctx, f"Select Permission to grant {user.mention}.", view=view, ephemeral=True)
         if not role is None:
             permlist=[]
             try:
-                guild_data=Data.getGuildData(_getGuildId(ctx)).data["perms"]["role-"+str(role.id)]
+                guild_data=self.data.getGuildData(_getGuildId(ctx)).data["perms"]["role-"+str(role.id)]
             except KeyError:
                 guild_data={}
-            for perm in Data.perms:
-                permlist.append(SelectOption(label=perm, value=perm, description=Data.perms[perm]["desc"], default=((perm in guild_data) if perm in guild_data else Data.perms[perm]["def"])))
-            view.add_item(PermSelction("perm", role, permlist, ctx.author, "role"))
+            for perm in self.data.perms:
+                permlist.append(SelectOption(label=perm, value=perm, description=self.data.perms[perm]["desc"], default=((perm in guild_data) if perm in guild_data else self.data.perms[perm]["def"])))
+            view.add_item(PermSelction(self.data, "perm", role, permlist, ctx.author, "role"))
             await Send(ctx, f"Select Permission to grant {role.mention}.", view=view, ephemeral=True)
-    @bot.slash_command(name="permission", description="Set Permission to User")
-    async def perm_sl(ctx, user:Option(discord.Member, description="An User who would be grant permission", required=False, default=None), role:Option(discord.Role, description="An Role who would be grant permission", required=False, default=None)):
-        await perm(ctx, user, role)
-    @bot.user_command(name="permission", description="Set Permission to User")
-    async def perm_usr(ctx, user):
-        await perm(ctx, user)
-    class PermSelction(Select):
-        def __init__(self, custom_id:str, user, permlist:list, author, user_type:typing.Literal["user","role"]):
-            self.permlist=permlist
-            self.target_user=user
-            self.author_user=author
-            self.target_user_type=user_type
-            super().__init__(custom_id=custom_id, options=self.permlist, max_values=len(self.permlist), placeholder="Select Permission.")
-        async def callback(self, interaction):
-            if self.author_user.id != interaction.user.id:
-                return
-            guild_data=Data.getGuildData(_getGuildId(interaction))
-            guild_data.data["perms"][f'{self.target_user_type}-{self.target_user.id}']=self.values
-            guild_data._syncData()
-            await interaction.response.send_message(content=f'Granted.', ephemeral=True)
+    @commands.slash_command(name="permission", description="Set Permission to User")
+    async def perm_sl(self, ctx, user:Option(discord.Member, description="An User who would be grant permission", required=False, default=None), role:Option(discord.Role, description="An Role who would be grant permission", required=False, default=None)):
+        await self.perm(ctx, user, role)
+    @commands.user_command(name="permission", description="Set Permission to User")
+    async def perm_usr(self, ctx, user):
+        await self.perm(ctx, user)
+
+class PermSelction(Select):
+    def __init__(self, data, custom_id:str, user, permlist:list, author, user_type:typing.Literal["user","role"]):
+        self.permlist=permlist
+        self.target_user=user
+        self.author_user=author
+        self.target_user_type=user_type
+        self.data=data
+        super().__init__(custom_id=custom_id, options=self.permlist, max_values=len(self.permlist), placeholder="Select Permission.")
+    async def callback(self, interaction):
+        if self.author_user.id != interaction.user.id:
+            return
+        guild_data=self.data.getGuildData(_getGuildId(interaction))
+        guild_data.data["perms"][f'{self.target_user_type}-{self.target_user.id}']=self.values
+        guild_data._syncData()
+        await interaction.response.send_message(content=f'Granted.', ephemeral=True)
+
+bot.add_cog(Core(bot))
 
 ##Run
 if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])
 else:
     bot.run(argv.token)
-for i in Data.playlists:
+for i in bot.data.playlists:
     i.stop(save=True)
