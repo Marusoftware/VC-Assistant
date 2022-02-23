@@ -1,4 +1,6 @@
+import logging, io, discord
 from discord.ext import commands
+from lib import _getGuildId, Send, randomstr
 try:
     import pyopenjtalk, numpy
     from scipy.io import wavfile
@@ -6,35 +8,36 @@ try:
 except:
     enjtalk=False
 
+logger=logging.getLogger("TTS")
+
 class TTS(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot
-
-    
-    if Data.getGuildData(_getGuildId(message)).getProperty(property_name="enTTS"):
-        try:
-            await tts_callback(message)
-        except Exception as e:
-            logger.exception("TTS Error:")
-except Exception as e:
-    self.logger.exception("TTS Error:")
-##tts
-if enjtalk:
-    @bot.group(name="tts", desecription="Text to Speech!!")
-    async def tts(ctx):
+        self.bot=bot
+        self.data=bot.data
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot: return
+        if self.data.getGuildData(_getGuildId(message)).getProperty(property_name="enTTS"):
+            try:
+                await self.tts_callback(message)
+            except Exception as e:
+                logger.exception("TTS Error:")
+    @commands.group(name="tts", desecription="Text to Speech!!")
+    async def tts(self, ctx):
         if ctx.invoked_subcommand is None:
-            if Data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
+            if self.data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
                 await ctx.send("TTS is now enable on this channel!!")
             else:
                 await ctx.send("TTS is now disable on this channel!!")
-    @bot.slash_command(name="tts", desecription="Text to Speech!!")
-    async def tts(ctx):
-        if Data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
+    @commands.slash_command(name="tts", desecription="Text to Speech!!")
+    async def tts(self, ctx):
+        if self.data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
             await ctx.respond("TTS is now enable on this channel!!")
         else:
             await ctx.respond("TTS is now disable on this channel!!")
-    async def tts_callback(message):
-        data=Data.getGuildData(_getGuildId(message))
+    async def tts_callback(self, message):
+        print(message.contnt)
+        data=self.data.getGuildData(_getGuildId(message))
         if message.channel.id in data.getTTSChannels():
             playlist=data.getPlaylist()
             vdata, vsr=pyopenjtalk.tts(message.content)
@@ -57,6 +60,8 @@ if enjtalk:
                         break
                     else:
                         playlist.channel.send_audio_packet(d, encode=True)
-if not enjtalk: logger.warning("Jtalk is not enabled.")
 def setup(bot):
-    return bot.add_cog(MyCog(bot))
+    if enjtalk:
+        return bot.add_cog(TTS(bot))
+    else:
+        logger.warning("Jtalk is not enabled.")

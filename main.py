@@ -49,7 +49,7 @@ def check_permission(ctx):
     return False
 bot.add_check(check_permission)
 #load modules
-for ext in ["matcher", "music", "activity"]:
+for ext in ["matcher", "music", "activity", "tts"]:
     bot.load_extension(f'modules.{ext}')
 
 class Core(commands.Cog):
@@ -63,11 +63,13 @@ class Core(commands.Cog):
         logger.info("Login")
     #on_message
     @commands.Cog.listener()
-    async def on_message(self, message: Message):
+    async def on_message(self, message):
         if message.author.bot: return
-        if bot.user in message.mentions:
+        if self.bot.user in message.mentions:
             prefix=prefix_setter(bot, message)
             await message.reply(f'Oh, It\'s me..!! My Command prefix is "{prefix}"\n If you want to see all commandlist, please type {prefix}help')
+        else:
+            await self.bot.process_commands(message)
     #on_error
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
