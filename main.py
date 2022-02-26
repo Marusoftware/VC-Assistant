@@ -30,6 +30,7 @@ def prefix_setter(bot, message):
     else:
         return bot.data.getGuildData(_getGuildId(message)).getProperty("prefix")
 bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
+bot.auto_sync_commands=True
 #database
 bot.data=_Data(data_dir=argv.path)
 bot.argv=argv
@@ -61,6 +62,7 @@ class Core(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info("Login")
+        bot.sync_commands()
     #on_message
     @commands.Cog.listener()
     async def on_message(self, message):
