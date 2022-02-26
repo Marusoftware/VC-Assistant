@@ -21,7 +21,7 @@ logger = logging.getLogger("Main")
 intents=Intents.default()
 intents.typing=False
 intents.members=True
-intents.message_content=True
+#intents.message_content=True
 ##bot init
 #prefix_setter
 def prefix_setter(bot, message):
