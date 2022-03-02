@@ -126,7 +126,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
         else:
             playlist=self.data.getGuildData(_getGuildId(channel)).getPlaylist()
             playlist.channel=channel.guild.voice_client
-            playlist.play_callback=self.play_callback
+            playlist.play_callback=Music.play_callback
             playlists=self.data.getGuildData(_getGuildId(channel)).getProperty("playlists")
             if "saved" in playlists:
                 if len(playlists["saved"]) !=0:
@@ -418,7 +418,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             urllist=await self.search_music(ctx, query, service)
             if urllist:
                 view=View(timeout=None)
-                view.add_item(MusicSelction(custom_id="test", urllist=urllist, channel=ctx.guild.voice_client))
+                view.add_item(MusicSelction(custom_id="test", urllist=urllist, parent=self))
                 await msg.edit("Select Music to Play.",view=view)
             else:
                 await msg.edit("Error in Searching Music.")

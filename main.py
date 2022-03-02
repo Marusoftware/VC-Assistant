@@ -1,4 +1,4 @@
-from discord import SelectOption, Option, Message, Intents, SlashCommandGroup
+from discord import SelectOption, Option, Intents, SlashCommandGroup
 import logging, argparse, discord, os, traceback, typing
 from data import Data as _Data
 from discord.ui import Select, View
@@ -62,7 +62,7 @@ class Core(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         logger.info("Login")
-        bot.sync_commands()
+        await bot.sync_commands()
     #on_message
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -70,8 +70,6 @@ class Core(commands.Cog):
         if self.bot.user in message.mentions:
             prefix=prefix_setter(bot, message)
             await message.reply(f'Oh, It\'s me..!! My Command prefix is "{prefix}"\n If you want to see all commandlist, please type {prefix}help')
-        else:
-            await self.bot.process_commands(message)
     #on_error
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
