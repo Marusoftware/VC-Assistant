@@ -200,5 +200,7 @@ if argv.token == "env":
     bot.run(os.environ["BOT_TOKEN"])
 else:
     bot.run(argv.token)
+
 for i in bot.data.playlists:
     i.stop(save=True)
+
