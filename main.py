@@ -79,7 +79,7 @@ class Core(commands.Cog):
 
     ##commands
     #ping
-    @commands.command(name="ping", desecription="Ping! Pong!")
+    @commands.command(name="ping", description="Ping! Pong!")
     async def ping(self, ctx):
         await Send(ctx, "Pong!!", ephemeral=True)
     @commands.slash_command(name="ping", description="Ping! Pong!")
@@ -91,7 +91,7 @@ class Core(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send('This command must have subcommands.\n (chprefix, feature)')
     #chprefix
-    @va.command(name="chprefix", desecription="Changing Prefix")
+    @va.command(name="chprefix", description="Changing Prefix")
     async def chprefix(self, ctx, prefix: str):
         self.data.getGuildData(_getGuildId(ctx)).setProperty(property_name="prefix",value=prefix)
         await Send(ctx, "Prefix was successfully changed.")
@@ -100,50 +100,50 @@ class Core(commands.Cog):
         await self.chprefix(ctx, prefix)
     #feature
     features={"matcher":"Matcher","tts":"TTS","music":"Music"}
-    @va.group(name="feature", desecription="Setting Feather")#text command group
+    @va.group(name="feature", description="Setting Feather")#text command group
     async def feature(self, ctx):
         if ctx.invoked_subcommand is None:
             await Send(ctx, 'This command must have subcommands.\n (enable, disable, list, apikey)')
     feature_sl=SlashCommandGroup("feature", "Setting Feather")#slash command group
     #feature - enable
-    @feature.command(name="enable", desecription="Enable Feather")
+    @feature.command(name="enable", description="Enable Feather")
     async def enable(self, ctx, feature: str):
         if feature in self.features:
             self.data.getGuildData(_getGuildId(ctx)).setProperty("en"+self.features[feature],True)
             await Send(ctx, self.features[feature]+" is now enabled!!")
         else:
             await Send(ctx, f'Oh no...Can\'t find such as feature..\nSupported features: {",".join(list(self.features.keys()))}')
-    @feature_sl.command(name="enable", desecription="Enable Feather")
+    @feature_sl.command(name="enable", description="Enable Feather")
     async def enable_sl(self, ctx, feature:Option(str, "Feature name", choices=list(features.keys()), required=True)):
         await self.enable(ctx, feature)
     #feature - disable
-    @feature.command(name="disable", desecription="Disable Feather")
+    @feature.command(name="disable", description="Disable Feather")
     async def disable(self, ctx, feature: str):
         if feature in self.features:
             self.data.getGuildData(_getGuildId(ctx)).setProperty("en"+self.features[feature],False)
             await Send(ctx, self.features[feature]+" is now disabled!!")
         else:
             await Send(ctx, f'Oh no...Can\'t find such as feature..\nSupported features: {",".join(list(self.features.keys()))}')
-    @feature_sl.command(name="disable", desecription="Disable Feather")
+    @feature_sl.command(name="disable", description="Disable Feather")
     async def disable_sl(self, ctx, feature:Option(str, "Feature name", choices=list(features.keys()), required=True)):
         await self.disable(ctx, feature)
     #feature - apikey
-    @feature.command(name="apikey", desecription="Set API key using in Feather")
+    @feature.command(name="apikey", description="Set API key using in Feather")
     async def apikey(self, ctx, kind:str, key:str):
         self.data.getGuildData(_getGuildId(ctx)).setProperty("key"+kind,key)
         await Send(ctx, "Key was seted.")
-    @feature_sl.command(name="apikey", desecription="Set API key using in Feather")
+    @feature_sl.command(name="apikey", description="Set API key using in Feather")
     async def apikey_sl(self, ctx, kind:Option(str, "Keyname", required=True), key:Option(str, "Key", required=True)):
         await self.apikey(ctx, kind, key)
     #feature - config
-    @feature.command(name="config", desecription="Set API key using in Feather")
+    @feature.command(name="config", description="Set API key using in Feather")
     async def config(self, ctx, key:str, value:str=None):
         if value is None:
             await Send(ctx, f"{key}: {self.data.getGuildData(_getGuildId(ctx)).getProperty(key)}")
         else:
             self.data.getGuildData(_getGuildId(ctx)).setProperty(key, value)
             await Send(ctx, "Config was seted.")
-    @feature_sl.command(name="config", desecription="Disable Feather")
+    @feature_sl.command(name="config", description="Disable Feather")
     async def config_sl(self, ctx, key:Option(str, "key", required=True), value:Option(str, "value", required=False, default=None)):
         await self.config(ctx, key, value)
     #Perm

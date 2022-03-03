@@ -6,7 +6,7 @@ class Activity(commands.Cog, name="activity", description="VC Activity"):
     def __init__(self, bot):
         self.bot=bot
     #activity
-    @commands.command(name="activity", aliases=["act"], desecription="VC Activity")
+    @commands.command(name="activity", aliases=["act"], description="VC Activity")
     async def act(self, ctx, activity:str, vc:VoiceChannel=None):
         activity=getattr(EmbeddedActivity, activity, None)
         if activity is None:

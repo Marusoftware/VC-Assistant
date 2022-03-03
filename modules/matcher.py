@@ -9,7 +9,7 @@ class Matcher(commands.Cog, name="matcher", description="Send message when find 
         self.data=bot.data
     #matcher
     matcher_sl=SlashCommandGroup("matcher", "Send message when find bingo message.")#slash command group
-    @commands.group("matcher", desecription="Setting Matcher Feature.")#text command group
+    @commands.group("matcher", description="Setting Matcher Feature.")#text command group
     async def matcher(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
             await Send(ctx, 'Matcher is not enabled.')
@@ -71,7 +71,7 @@ class Matcher(commands.Cog, name="matcher", description="Send message when find 
     async def add_sl(self, ctx, pattern:Option(str, "Pattern(regax)", required=True), text:Option(str, "Text", required=True), check_type:Option(str, "Check Type", choices=["match","search","fullmatch","event"], default="search")):
         await self.add(ctx, pattern, check_type, text)
     #del sub command
-    @matcher.command(name="del", desecription="Del word from dict.")
+    @matcher.command(name="del", description="Del word from dict.")
     async def delete(self, ctx, pattern:str, is_event:bool=False):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
             await Send(ctx, 'Matcher is not enabled.')
@@ -82,7 +82,7 @@ class Matcher(commands.Cog, name="matcher", description="Send message when find 
     async def del_sl(self, ctx, pattern:Option(str, "Pattern(regax)", required=True), is_event:Option(bool, "Is it Event?", default=False, required=False)):
         await self.delete(ctx, pattern, is_event)
     #list sub command
-    @matcher.command(name="list", desecription="List word in dict.")
+    @matcher.command(name="list", description="List word in dict.")
     async def matcher_list(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMatcher"):
             await Send(ctx, 'Matcher is not enabled.')

@@ -22,14 +22,14 @@ class TTS(commands.Cog):
                 await self.tts_callback(message)
             except Exception as e:
                 logger.exception("TTS Error:")
-    @commands.group(name="tts", desecription="Text to Speech!!")
+    @commands.group(name="tts", description="Text to Speech!!")
     async def tts(self, ctx):
         if ctx.invoked_subcommand is None:
             if self.data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
                 await ctx.send("TTS is now enable on this channel!!")
             else:
                 await ctx.send("TTS is now disable on this channel!!")
-    @commands.slash_command(name="tts", desecription="Text to Speech!!")
+    @commands.slash_command(name="tts", description="Text to Speech!!")
     async def tts(self, ctx):
         if self.data.getGuildData(_getGuildId(ctx)).switchTTSChannel(ctx.channel):
             await ctx.respond("TTS is now enable on this channel!!")
