@@ -36,7 +36,6 @@ class TTS(commands.Cog):
         else:
             await ctx.respond("TTS is now disable on this channel!!")
     async def tts_callback(self, message):
-        print(message.contnt)
         data=self.data.getGuildData(_getGuildId(message))
         if message.channel.id in data.getTTSChannels():
             playlist=data.getPlaylist()
