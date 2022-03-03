@@ -8,7 +8,10 @@ class Activity(commands.Cog, name="activity", description="VC Activity"):
     #activity
     @commands.command(name="activity", aliases=["act"], description="VC Activity")
     async def act(self, ctx, activity:str, vc:VoiceChannel=None):
-        activity=getattr(EmbeddedActivity, activity, None)
+        if activity == "youtube_together":
+            activity=880218394199220334
+        else:
+            activity=getattr(EmbeddedActivity, activity, None)
         if activity is None:
             await Send(ctx, "No such activity was found.")
         else:
