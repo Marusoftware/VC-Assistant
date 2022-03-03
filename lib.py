@@ -29,5 +29,5 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None, mention_
         ctx:commands.Context=ctx
         msg=await ctx.send(content=content, mention_author=mention_author, **options)
     else:
-        msg=await ctx.respond(content=content, ephemeral=ephemeral, **options)
+        msg=await (await ctx.respond(content=content, ephemeral=ephemeral, **options)).original_message()
     return msg
