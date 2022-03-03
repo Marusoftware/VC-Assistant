@@ -422,9 +422,9 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                 await msg.edit("Select Music to Play.",view=view)
             else:
                 await msg.edit("Error in Searching Music.")
-    @commands.slash_command(name="play", description="join to VC")
+    @commands.slash_command(name="play", description="Play music on VC")
     async def play_sl(self, ctx, query:Option(str, "Search text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico","playlist-youtube-all","save","savel"], default="detect")):
-        await self.play(ctx, query=query)
+        await self.play(ctx, query)
     #skip
     @commands.command(name="skip", aliases=["s"], description="Skip Music")
     async def skip(self, ctx):

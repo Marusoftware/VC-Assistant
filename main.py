@@ -1,4 +1,4 @@
-from discord import SelectOption, Option, Intents, SlashCommandGroup
+from discord import SelectOption, Option, Intents, SlashCommandGroup, User
 import logging, argparse, discord, os, traceback, typing
 from data import Data as _Data
 from discord.ui import Select, View
@@ -171,10 +171,10 @@ class Core(commands.Cog):
             view.add_item(PermSelction(self.data, "perm", role, permlist, ctx.author, "role"))
             await Send(ctx, f"Select Permission to grant {role.mention}.", view=view, ephemeral=True)
     @commands.slash_command(name="permission", description="Set Permission to User")
-    async def perm_sl(self, ctx, user:Option(discord.Member, description="An User who would be grant permission", required=False, default=None), role:Option(discord.Role, description="An Role who would be grant permission", required=False, default=None)):
+    async def perm_sl(self, ctx, user:Option(discord.Member, "An User who would be grant permission", required=False, default=None), role:Option(discord.Role, "An Role who would be grant permission", required=False, default=None)):
         await self.perm(ctx, user, role)
-    @commands.user_command(name="permission", description="Set Permission to User")
-    async def perm_usr(self, ctx, user):
+    @commands.user_command(name="permission", description="")
+    async def perm_usr(self, ctx, user: User):
         await self.perm(ctx, user)
 
 class PermSelction(Select):
