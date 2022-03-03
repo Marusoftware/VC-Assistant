@@ -1,8 +1,9 @@
-git+https://github.com/Pycord-Development/pycord#egg=py-cord[voice]
-git+https://github.com/glubsy/pytube.git@nfunc_regex_patch
+
+py-cord[voice,speed]==2.0.0b4
+git+https://github.com/pytube/pytube
 aiofiles
 google-api-python-client
-https://github.com/tasuren/niconico_dl/releases/download/v2.2.4/niconico_dl-2.2.4-py3-none-any.whl
+https://github.com/tasuren/niconico_dl/releases/download/v2.2.7/niconico_dl-2.2.7.tar.gz
 psycopg2-binary
 ffmpeg-python
 pyopenjtalk

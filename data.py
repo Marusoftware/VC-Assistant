@@ -100,8 +100,8 @@ class GuildData():
         else:
             self.data["matcher_dict"][pattern]=(check_type, text)
         self._syncData()
-    def delMatcherDict(self, pattern, check_type):
-        if check_type == "event":
+    def delMatcherDict(self, pattern, event):
+        if event:
             self.data["matcher_dict"].pop(pattern)
         else:
             for pt in self.data["matcher_dict"]:
