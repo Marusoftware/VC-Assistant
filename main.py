@@ -2,7 +2,7 @@ from discord import SelectOption, Option, Intents, SlashCommandGroup, User
 import logging, argparse, discord, os, traceback, typing
 from data import Data as _Data
 from discord.ui import Select, View
-from discord.ext import commands
+from discord.ext import commands, bridge
 from lib import _getGuildId, Send
 
 #parse argv
@@ -21,7 +21,7 @@ logger = logging.getLogger("Main")
 intents=Intents.default()
 intents.typing=False
 intents.members=True
-#intents.message_content=True
+intents.message_content=True
 ##bot init
 #prefix_setter
 def prefix_setter(bot, message):
@@ -29,7 +29,7 @@ def prefix_setter(bot, message):
         return "!"
     else:
         return bot.data.getGuildData(_getGuildId(message)).getProperty("prefix")
-bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
+bot = bridge.Bot(command_prefix=prefix_setter, intents=intents)
 bot.auto_sync_commands=True
 #database
 bot.data=_Data(data_dir=argv.path)
@@ -79,25 +79,23 @@ class Core(commands.Cog):
 
     ##commands
     #ping
-    @commands.command(name="ping", description="Ping! Pong!")
+    @bridge.bridge_command(name="ping", description="Ping! Pong!")
     async def ping(self, ctx):
-        await Send(ctx, "Pong!!", ephemeral=True)
-    @commands.slash_command(name="ping", description="Ping! Pong!")
-    async def ping_sl(self, ctx):
-        await self.ping(ctx)
+        options={}
+        if isinstance(bridge.BridgeApplicationContext, ctx): options.update(ephemeral=True)
+        await ctx.respond("Pong!!", **options)
+
     #va
     @commands.group(name="va", description="Core command of VC-Assistant")#text command group
     async def va(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send('This command must have subcommands.\n (chprefix, feature)')
     #chprefix
-    @va.command(name="chprefix", description="Changing Prefix")
+    @bridge.bridge_command(name="chprefix", description="Changing Prefix")
     async def chprefix(self, ctx, prefix: str):
         self.data.getGuildData(_getGuildId(ctx)).setProperty(property_name="prefix",value=prefix)
-        await Send(ctx, "Prefix was successfully changed.")
-    @commands.slash_command(name="chprefix", description="Changing Prefix")
-    async def chprefix_sl(self, ctx, prefix: Option(str, "Prefix string", required=True)):
-        await self.chprefix(ctx, prefix)
+        await ctx.respond("Prefix was successfully changed.")
+
     #feature
     features={"matcher":"Matcher","tts":"TTS","music":"Music"}
     @va.group(name="feature", description="Setting Feather")#text command group
