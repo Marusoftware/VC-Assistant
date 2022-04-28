@@ -63,6 +63,7 @@ class Core(commands.Cog):
     async def on_ready(self):
         logger.info("Login")
         await bot.sync_commands()
+        logger.info([f'{i.name}' for i in bot.commands])
     #on_message
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -168,12 +169,6 @@ class Core(commands.Cog):
                 permlist.append(SelectOption(label=perm, value=perm, description=self.data.perms[perm]["desc"], default=((perm in guild_data) if perm in guild_data else self.data.perms[perm]["def"])))
             view.add_item(PermSelction(self.data, "perm", role, permlist, ctx.author, "role"))
             await Send(ctx, f"Select Permission to grant {role.mention}.", view=view, ephemeral=True)
-    @commands.slash_command(name="permission", description="Set Permission to User")
-    async def perm_sl(self, ctx, user:Option(discord.Member, "An User who would be grant permission", required=False, default=None), role:Option(discord.Role, "An Role who would be grant permission", required=False, default=None)):
-        await self.perm(ctx, user, role)
-    @commands.user_command(name="permission", description="")
-    async def perm_usr(self, ctx, user: User):
-        await self.perm(ctx, user)
 
 class PermSelction(Select):
     def __init__(self, data, custom_id:str, user, permlist:list, author, user_type:typing.Literal["user","role"]):
