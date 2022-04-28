@@ -1,3 +1,4 @@
+from email.policy import default
 from discord.ext import commands, bridge
 from discord import SelectOption, Option, Member, Embed
 import discord, re, datetime
@@ -56,7 +57,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
     def __init__(self, bot):
         self.bot=bot
         self.data=bot.data
-        self.recodings={}
+        self.recodings=[]
     ##Event
     #Auto disconnect
     @commands.Cog.listener()
@@ -356,9 +357,11 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             await ctx.respond("Now no support for DM...Sorry...", ephemeral=True)
     #recoad
     @bridge.bridge_command(name="record", aliases=["rec"], description="Play in VC")
-    async def record(self, ctx, encoding:Option(str,choices=["mp3","wav","pcm","ogg","mka","mkv","mp4","m4a"])):
+    async def record(self, ctx, encoding:Option(str,choices=["mp3","wav","pcm","ogg","mka","mkv","mp4","m4a"], default="mp3", required=False)):
         if ctx.guild.id in self.recodings:
-            pass
+            ctx.guild.voice_client.stop_recording()
+            await ctx.respond("The recording has stoped!")
+            self.recodings.remove(ctx.guild.id)
         else:
             if encoding == "mp3":
                 sink = discord.sinks.MP3Sink()
@@ -384,6 +387,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                 ctx.channel,
             )
             await ctx.respond("The recording has started!")
+            self.recodings.append(ctx.guild.id)
     async def finished_callback(self, sink, channel: discord.TextChannel, *args):
         recorded_users = [f"<@{user_id}>" for user_id, audio in sink.audio_data.items()]
         await sink.vc.disconnect()
