@@ -355,8 +355,8 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                     await ctx.respond("Sorry... Can't connect to VC....", ephemeral=True)
         else:
             await ctx.respond("Now no support for DM...Sorry...", ephemeral=True)
-    #recoad
-    @bridge.bridge_command(name="record", aliases=["rec"], description="Play in VC")
+    #record
+    @bridge.bridge_command(name="record", aliases=["rec"], description="Record VC")
     async def record(self, ctx, encoding:Option(str,choices=["mp3","wav","pcm","ogg","mka","mkv","mp4","m4a"], default="mp3", required=False)):
         if ctx.guild.id in self.recodings:
             ctx.guild.voice_client.stop_recording()
