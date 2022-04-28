@@ -25,9 +25,10 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None, mention_
     del_after=Data.getGuildData(_getGuildId(ctx)).getProperty("AutoRemove")
     if del_after:
         options["delete_after"]=int(del_after)
-    if type(ctx) == commands.Context:
-        ctx:commands.Context=ctx
-        msg=await ctx.send(content=content, mention_author=mention_author, **options)
-    else:
-        msg=await (await ctx.respond(content=content, ephemeral=ephemeral, **options)).original_message()
+    #if type(ctx) == commands.Context:
+    #    ctx:commands.Context=ctx
+    #    msg=await ctx.send(content=content, mention_author=mention_author, **options)
+    #else:
+    #    msg=await (await ctx.respond(content=content, ephemeral=ephemeral, **options)).original_message()
+    msg=await ctx.send(content=content, mention_author=mention_author, **options)
     return msg

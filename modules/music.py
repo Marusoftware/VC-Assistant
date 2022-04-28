@@ -4,7 +4,7 @@ from discord import SelectOption, Option, Member, Embed
 import discord, re, datetime
 from pytube.streams import Stream
 from pytube import YouTube, Search, Playlist
-from pytube.exceptions import LiveStreamError
+from pytube.exceptions import LiveStreamError, RegexMatchError
 from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View, Button
@@ -261,6 +261,21 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                     path=st.download(output_path=self.bot.argv.path, filename_prefix=randomstr(5), timeout=1000)
             except LiveStreamError:
                 path=yt.streaming_data["hlsManifestUrl"]
+            except RegexMatchError:
+                stl=[]
+                for dt in yt.streaming_data["formats"]:
+                    if "audioQuality" in dt:
+                        if dt["audioQuality"] == "AUDIO_QUALITY_LOW":
+                            stl.append(1)
+                        elif dt["audioQuality"] == "AUDIO_QUALITY_MEDIUM":
+                            stl.append(2)
+                        elif dt["audioQuality"] == "AUDIO_QUALITY_HIGH":
+                            stl.append(3)
+                        else:
+                            stl.append(0)
+                    else:
+                        stl.append(0)
+                path=yt.streaming_data["formats"][stl.index(max(stl))]["url"]
             except:
                 print("Music error(Youtube)")
             self.data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, yt.title, path, user, url)
@@ -436,7 +451,6 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                 await message.edit(content=f'Prepareing playing "{urllist[0]}"...', view=None)
             else:
                 await message.edit(content='Prepareing playing Musics...', view=None)
-            text=""
             for value in urllist:
                 status=await self.play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1, stream_ex=len(urllist)>5)
             await self.status2msg(0,msg=message, value=(None if len(urllist)<2 else f'And {len(urllist)-1} musics were added to queue'))
