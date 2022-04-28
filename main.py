@@ -2,7 +2,7 @@ from discord import SelectOption, Option, Intents, SlashCommandGroup, User
 import logging, argparse, discord, os, traceback, typing
 from data import Data as _Data
 from discord.ui import Select, View
-from discord.ext import commands
+from discord.ext import commands, bridge
 from lib import _getGuildId, Send
 
 #parse argv
@@ -21,7 +21,7 @@ logger = logging.getLogger("Main")
 intents=Intents.default()
 intents.typing=False
 intents.members=True
-#intents.message_content=True
+intents.message_content=True
 ##bot init
 #prefix_setter
 def prefix_setter(bot, message):
@@ -29,7 +29,7 @@ def prefix_setter(bot, message):
         return "!"
     else:
         return bot.data.getGuildData(_getGuildId(message)).getProperty("prefix")
-bot = commands.Bot(command_prefix=prefix_setter, intents=intents)
+bot = bridge.Bot(command_prefix=prefix_setter, intents=intents)
 bot.auto_sync_commands=True
 #database
 bot.data=_Data(data_dir=argv.path)
@@ -50,7 +50,7 @@ def check_permission(ctx):
     return False
 bot.add_check(check_permission)
 #load modules
-for ext in ["matcher", "music", "activity"]:
+for ext in ["matcher", "music"]:
     bot.load_extension(f'modules.{ext}')
 
 class Core(commands.Cog):
@@ -63,6 +63,7 @@ class Core(commands.Cog):
     async def on_ready(self):
         logger.info("Login")
         await bot.sync_commands()
+        logger.info([f'{i.name}' for i in bot.commands])
     #on_message
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -79,25 +80,23 @@ class Core(commands.Cog):
 
     ##commands
     #ping
-    @commands.command(name="ping", description="Ping! Pong!")
+    @bridge.bridge_command(name="ping", description="Ping! Pong!")
     async def ping(self, ctx):
-        await Send(ctx, "Pong!!", ephemeral=True)
-    @commands.slash_command(name="ping", description="Ping! Pong!")
-    async def ping_sl(self, ctx):
-        await self.ping(ctx)
+        options={}
+        if isinstance(bridge.BridgeApplicationContext, ctx): options.update(ephemeral=True)
+        await ctx.respond("Pong!!", **options)
+
     #va
     @commands.group(name="va", description="Core command of VC-Assistant")#text command group
     async def va(self, ctx):
         if ctx.invoked_subcommand is None:
             await ctx.send('This command must have subcommands.\n (chprefix, feature)')
     #chprefix
-    @va.command(name="chprefix", description="Changing Prefix")
+    @bridge.bridge_command(name="chprefix", description="Changing Prefix")
     async def chprefix(self, ctx, prefix: str):
         self.data.getGuildData(_getGuildId(ctx)).setProperty(property_name="prefix",value=prefix)
-        await Send(ctx, "Prefix was successfully changed.")
-    @commands.slash_command(name="chprefix", description="Changing Prefix")
-    async def chprefix_sl(self, ctx, prefix: Option(str, "Prefix string", required=True)):
-        await self.chprefix(ctx, prefix)
+        await ctx.respond("Prefix was successfully changed.")
+
     #feature
     features={"matcher":"Matcher","tts":"TTS","music":"Music"}
     @va.group(name="feature", description="Setting Feather")#text command group
@@ -170,12 +169,6 @@ class Core(commands.Cog):
                 permlist.append(SelectOption(label=perm, value=perm, description=self.data.perms[perm]["desc"], default=((perm in guild_data) if perm in guild_data else self.data.perms[perm]["def"])))
             view.add_item(PermSelction(self.data, "perm", role, permlist, ctx.author, "role"))
             await Send(ctx, f"Select Permission to grant {role.mention}.", view=view, ephemeral=True)
-    @commands.slash_command(name="permission", description="Set Permission to User")
-    async def perm_sl(self, ctx, user:Option(discord.Member, "An User who would be grant permission", required=False, default=None), role:Option(discord.Role, "An Role who would be grant permission", required=False, default=None)):
-        await self.perm(ctx, user, role)
-    @commands.user_command(name="permission", description="")
-    async def perm_usr(self, ctx, user: User):
-        await self.perm(ctx, user)
 
 class PermSelction(Select):
     def __init__(self, data, custom_id:str, user, permlist:list, author, user_type:typing.Literal["user","role"]):

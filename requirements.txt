@@ -1,5 +1,4 @@
-
-py-cord[voice,speed]==2.0.0b4
+git+https://github.com/Pycord-Development/pycord.git#egg=py-cord[voice,speed]==2.0.0b7
 git+https://github.com/pytube/pytube
 aiofiles
 google-api-python-client

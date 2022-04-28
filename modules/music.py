@@ -1,9 +1,10 @@
-from discord.ext import commands
+from email.policy import default
+from discord.ext import commands, bridge
 from discord import SelectOption, Option, Member, Embed
 import discord, re, datetime
 from pytube.streams import Stream
 from pytube import YouTube, Search, Playlist
-from pytube.exceptions import LiveStreamError
+from pytube.exceptions import LiveStreamError, RegexMatchError
 from apiclient.discovery import build
 from niconico_dl import NicoNicoVideo
 from discord.ui import Select, View, Button
@@ -56,6 +57,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
     def __init__(self, bot):
         self.bot=bot
         self.data=bot.data
+        self.recodings=[]
     ##Event
     #Auto disconnect
     @commands.Cog.listener()
@@ -250,8 +252,6 @@ class Music(commands.Cog, name="music", description="Music playback and record."
         if service == "youtube":
             try:
                 yt = YouTube(url=url)
-                #yt.bypass_age_gate()
-                #yt.check_availability()
                 st:Stream=yt.streams.get_audio_only()
                 if stream_ex:
                     path=st.url
@@ -261,6 +261,21 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                     path=st.download(output_path=self.bot.argv.path, filename_prefix=randomstr(5), timeout=1000)
             except LiveStreamError:
                 path=yt.streaming_data["hlsManifestUrl"]
+            except RegexMatchError:
+                stl=[]
+                for dt in yt.streaming_data["formats"]:
+                    if "audioQuality" in dt:
+                        if dt["audioQuality"] == "AUDIO_QUALITY_LOW":
+                            stl.append(1)
+                        elif dt["audioQuality"] == "AUDIO_QUALITY_MEDIUM":
+                            stl.append(2)
+                        elif dt["audioQuality"] == "AUDIO_QUALITY_HIGH":
+                            stl.append(3)
+                        else:
+                            stl.append(0)
+                    else:
+                        stl.append(0)
+                path=yt.streaming_data["formats"][stl.index(max(stl))]["url"]
             except:
                 print("Music error(Youtube)")
             self.data.getGuildData(_getGuildId(channel)).getPlaylist().add(yt.length, yt.title, path, user, url)
@@ -327,14 +342,14 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             return "search-youtube"
     ##Body
     #join
-    @commands.command(name="join", aliases=["j"], description="join to VC")
-    async def join(self, ctx, channel:discord.VoiceChannel=None, restore:bool=True):
+    @bridge.bridge_command(name="join", aliases=["j"], description="join to VC")
+    async def join(self, ctx, channel:Option(discord.VoiceChannel, "VC", required=False, default=None), restore:Option(bool, "Restore latest playing.", required=False, default=True)):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.', ephemeral=True)
+            await ctx.respond('Music is not enabled.', ephemeral=True)
             return
         if isinstance(ctx.author, Member):
             if ctx.author.voice is None and channel is None:
-                await Send(ctx, "Please assign or enter to VC.", ephemeral=True)
+                await ctx.respond("Please assign or enter to VC.", ephemeral=True)
             else:
                 if channel is None:
                     state=await self.connect(ctx.author.voice.channel)
@@ -343,21 +358,56 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                     state=await self.connect(channel)
                 if state!=False:
                     if type(state) == dict and restore:
-                        msg=await Send(ctx, "Connected to VC(And restoreing latest session.)")
+                        msg=await ctx.respond("Connected to VC(And restoreing latest session.)")
                         for music in state:
                             await self.play_music(state[music]["url"], ctx.guild.voice_client, self.bot.get_user(state[music]["user"]), stream=len(state)>1, stream_ex=len(state)>5)
                         await msg.edit("Connected to VC(And restored latest session.)")
                         self.data.getGuildData(_getGuildId(ctx)).data["playlists"].pop("saved")
                         self.data.getGuildData(_getGuildId(ctx))._syncData()
                     else:
-                        await Send(ctx, "Connected to VC")
+                        await ctx.respond("Connected to VC")
                 else:
-                    await Send(ctx, "Sorry... Can't connect to VC....", ephemeral=True)
+                    await ctx.respond("Sorry... Can't connect to VC....", ephemeral=True)
         else:
-            await Send(ctx, "Now no support for DM...Sorry...", ephemeral=True)
-    @commands.slash_command(name="join", description="join to VC")
-    async def join_sl(self, ctx, channel:Option(discord.VoiceChannel, "VC", required=False, default=None), restore:Option(bool, "Restore latest playing.", required=False, default=True)):#7 is Option type channel.
-        await self.join(ctx, channel, restore)
+            await ctx.respond("Now no support for DM...Sorry...", ephemeral=True)
+    #record
+    @bridge.bridge_command(name="record", aliases=["rec"], description="Record VC")
+    async def record(self, ctx, encoding:Option(str,choices=["mp3","wav","pcm","ogg","mka","mkv","mp4","m4a"], default="mp3", required=False)):
+        if ctx.guild.id in self.recodings:
+            ctx.guild.voice_client.stop_recording()
+            await ctx.respond("The recording has stoped!")
+            self.recodings.remove(ctx.guild.id)
+        else:
+            if encoding == "mp3":
+                sink = discord.sinks.MP3Sink()
+            elif encoding == "wav":
+                sink = discord.sinks.WaveSink()
+            elif encoding == "pcm":
+                sink = discord.sinks.PCMSink()
+            elif encoding == "ogg":
+                sink = discord.sinks.OGGSink()
+            elif encoding == "mka":
+                sink = discord.sinks.MKASink()
+            elif encoding == "mkv":
+                sink = discord.sinks.MKVSink()
+            elif encoding == "mp4":
+                sink = discord.sinks.MP4Sink()
+            elif encoding == "m4a":
+                sink = discord.sinks.M4ASink()
+            else:
+                return await ctx.respond("Invalid encoding.")
+            ctx.guild.voice_client.start_recording(
+                sink,
+                self.finished_callback,
+                ctx.channel,
+            )
+            await ctx.respond("The recording has started!")
+            self.recodings.append(ctx.guild.id)
+    async def finished_callback(self, sink, channel: discord.TextChannel, *args):
+        recorded_users = [f"<@{user_id}>" for user_id, audio in sink.audio_data.items()]
+        await sink.vc.disconnect()
+        files = [discord.File(audio.file, f"{user_id}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]
+        await channel.send(f"Finished! Recorded audio for {', '.join(recorded_users)}.", files=files)
     #play
     @commands.command(name="play", aliases=["p"], description="Play in VC")
     async def play(self, ctx, *query):
@@ -400,15 +450,14 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             if len(urllist) == 1:
                 await message.edit(content=f'Prepareing playing "{urllist[0]}"...', view=None)
             else:
-                await message.edit(content=f'Prepareing playing Musics...', view=None)
-            text=""
+                await message.edit(content='Prepareing playing Musics...', view=None)
             for value in urllist:
                 status=await self.play_music(value, ctx.guild.voice_client, ctx.author, stream=len(urllist)>1, stream_ex=len(urllist)>5)
             await self.status2msg(0,msg=message, value=(None if len(urllist)<2 else f'And {len(urllist)-1} musics were added to queue'))
         elif service == "file":
             if len(ctx.message.attachments) != 0:
                 file=ctx.message.attachments[0]
-                msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
+                msg = await Send(ctx, content='Prepareing playing...', mention_author=True)
                 status=await self.play_music(file.url, ctx.guild.voice_client, ctx.author, "file", file.filename)
                 await self.status2msg(status, msg=msg)
             else:
@@ -426,59 +475,47 @@ class Music(commands.Cog, name="music", description="Music playback and record."
     async def play_sl(self, ctx, query:Option(str, "Search text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico","playlist-youtube-all","save","savel"], default="detect")):
         await self.play(ctx, query)
     #skip
-    @commands.command(name="skip", aliases=["s"], description="Skip Music")
+    @bridge.bridge_command(name="skip", aliases=["s"], description="Skip Music")
     async def skip(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         if not ctx.guild.voice_client is None:
-            await Send(ctx, content=f'Skiping Music...')
+            await ctx.respond('Skiping Music...')
             self.data.getGuildData(_getGuildId(ctx)).getPlaylist().skip()
-    @commands.slash_command(name="skip", description="Skip Music")
-    async def skip_sl(self, ctx):
-        await self.skip(ctx)
     #pause
-    @commands.command(name="pause", aliases=["pa"], description="Pause Music")
+    @bridge.bridge_command(name="pause", aliases=["pa"], description="Pause Music")
     async def pause(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         if not ctx.guild.voice_client is None:
-            await Send(ctx, content=f'Pausing Music...')
+            await ctx.respond('Pausing Music...')
             self.data.getGuildData(_getGuildId(ctx)).getPlaylist().pause()
-    @commands.slash_command(name="pause", description="Pause Music")
-    async def pause_sl(self, ctx):
-        await self.pause(ctx)
     #resume
-    @commands.command(name="resume", aliases=["re"], description="Resume Music")
+    @bridge.bridge_command(name="resume", aliases=["re"], description="Resume Music")
     async def resume(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         if not ctx.guild.voice_client is None:
-            await Send(ctx, content=f'Resuming Music...')
+            await ctx.respond('Resuming Music...')
             self.data.getGuildData(_getGuildId(ctx)).getPlaylist().resume()
-    @commands.slash_command(name="resume", description="Resume Music")
-    async def resume_sl(self, ctx):
-        await self.resume(ctx)
     #stop
-    @commands.command(name="stop", aliases=["st"], description="Stop Music")
+    @bridge.bridge_command(name="stop", aliases=["st"], description="Stop Music")
     async def stop(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         if not ctx.guild.voice_client is None:
-            await Send(ctx, content=f'Stop playing...')
+            await ctx.respond('Stop playing...')
             self.data.getGuildData(_getGuildId(ctx)).getPlaylist().stop()
-    @commands.slash_command(name="stop", description="Stop Music")
-    async def stop_sl(self, ctx):
-        await self.stop(ctx)
     #nowplaying
-    @commands.command(name="nowplaying", aliases=["np"], description="Show playing Music.")
+    @bridge.bridge_command(name="nowplaying", aliases=["np"], description="Show playing Music.")
     async def np(self, ctx):
         data=self.data.getGuildData(_getGuildId(ctx))
         if not data.getProperty("enMusic"):
-            await Send('Music is not enabled.', ephemeral=True)
+            await ctx.respond('Music is not enabled.', ephemeral=True)
             return
         playlist=data.getPlaylist()
         if len(playlist.playlist)!=0:
@@ -488,17 +525,14 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             embed.set_author(name=user, icon_url=user.avatar)
             if playlist.loop:
                 embed.add_field(name="Loop", value="Enabled!!:repeat:")
-            await Send(ctx, embed=embed)
+            await ctx.respond("", embed=embed)
         else:
-            await Send(ctx, "Now, No Music is playing...")
-    @commands.slash_command(name="nowplaying", description="Show playing Music.")
-    async def np_sl(self, ctx):
-        await self.np(ctx)
+            await ctx.respond("Now, No Music is playing...")
     #showq
-    @commands.command(name="showq", aliases=["q"], description="Show queued Music.")
+    @bridge.bridge_command(name="showq", aliases=["q"], description="Show queued Music.")
     async def showq(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx,'Music is not enabled.', ephemeral=True)
+            await ctx.respond('Music is not enabled.', ephemeral=True)
             return
         pl=self.data.getGuildData(_getGuildId(ctx)).getPlaylist()
         if len(pl.playlist)!=0:
@@ -510,14 +544,11 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                 embed.add_field(name=f'{str(n)}"{playlist[music]["title"]}"', value=f'[{self.StoTime(playlist[music]["length"])}]', inline=False)
             if len(playlist) > 25:
                 embed.set_footer(text=f'{len(playlist)-25} musics are after these.')
-            await Send(ctx, embed=embed)
+            await ctx.respond("", embed=embed)
         else:
-            await Send(ctx, "Now, No Music(s) is in queue...")
-    @commands.slash_command(name="showq", description="Show queued Music.")
-    async def showq_sl(self, ctx):
-        await self.showq(ctx)
+            await ctx.respond("Now, No Music(s) is in queue...")
     #getsaved
-    @commands.command(name="getsaved", aliases=["gsv"])
+    @bridge.bridge_command(name="getsaved", aliases=["gsv"])#TODO: option to select save
     async def getsaved(self, ctx):
         temp=""
         saved=self.data.getGuildData(_getGuildId(ctx)).data["playlists"]
@@ -525,113 +556,88 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             temp+=f'{i} : `{",".join(list(saved[i].keys()))}\n`'
         if len(temp)==0:
             temp="Saved music list is not found."
-        await Send(ctx, temp)
-    @commands.slash_command(name="getsaved")
-    async def getsaved_sl(self, ctx):
-        await self.getsaved(ctx)
+        await ctx.respond(temp)
     #save
-    @commands.command(name="save", aliases=["sv"], description="Save queued Music.")
-    async def save(self, ctx, id:str):
+    @bridge.bridge_command(name="save", aliases=["sv"], description="Save queued Music.")
+    async def save(self, ctx, id:Option(int, description="An ID for save.", required=True)):
         self.data.getGuildData(_getGuildId(ctx)).playlist.save(id)
-        await Send(ctx, "Saved.")
-    @commands.slash_command(name="save", description="Save queued Music.")
-    async def save_sl(self, ctx, id:Option(int, description="An ID for save.", required=True)):
-        await self.save(ctx, id)
+        await ctx.respond("Saved.")
     #del
-    @commands.command(name="delete", aliases=["del","d"], description="Delete queued Music/Save.")
-    async def delete(self, ctx, index:str):
+    @bridge.bridge_command(name="delete", aliases=["del","d"], description="Delete queued Music/Save.")
+    async def delete(self, ctx, index:Option(str, "Music Index", required=True)):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         if index.startswith("save:"):
             index=index.replace("save:","")
             self.data.getGuildData(_getGuildId(ctx)).data["playlists"].pop(index)
-            await Send(ctx, "Delete Save")
+            await ctx.respond("Delete Save")
         else:
             index=int(index)-1
             if index == 0:
-                await Send(ctx, "If you want to delete Index 1, please use skip.")
+                await ctx.respond("If you want to delete Index 1, please use skip.")
                 return
             if not ctx.guild.voice_client is None:
                 playlist=self.data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
                 playlist.pop(list(playlist.keys())[index])
-                await Send(ctx, "Delete Music")
-    @commands.slash_command(name="delete", description="Delete queued Music/Save.")
-    async def delete_sl(self, ctx, index:Option(str, "Music Index", required=True)):
-        await self.delete(ctx, index)
+                await ctx.respond("Delete Music")
     #movetoend
-    @commands.command(name="movetoend", aliases=["mv","m"], description="Move queued Music to end.")
-    async def movetoend(self, ctx, index:int):
+    @bridge.bridge_command(name="movetoend", aliases=["mv","m"], description="Move queued Music to end.")
+    async def movetoend(self, ctx, index:Option(int, "Music Index", required=True)):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         index-=1
         if index == 0:
-            await Send(ctx, "If you want to move Index 1, please use skip.")
+            await ctx.respond("If you want to move Index 1, please use skip.")
             return
         if not ctx.guild.voice_client is None:
             playlist=self.data.getGuildData(_getGuildId(ctx)).getPlaylist().playlist
             playlist.move_to_end(list(playlist.keys())[index])
-            await Send(ctx, "Music was moved!!")
-    @commands.slash_command(name="move", description="Move queued Music to end.")
-    async def movetoend_sl(self, ctx, index:Option(int, "Music Index", required=True)):
-        await self.movetoend(ctx, index)
+            await ctx.respond("Music was moved!!")
     #loop
-    @commands.command(name="loop", aliases=["l"], description="Loop queued Music.")
-    async def loop(self, ctx, tf:bool=None):
+    @bridge.bridge_command(name="loop", aliases=["l"], description="Loop queued Music.")
+    async def loop(self, ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         playlist=self.data.getGuildData(_getGuildId(ctx)).getPlaylist()
         if tf is None:
             playlist.loop=not playlist.loop
         else:
             playlist.loop=tf
-        await Send(ctx, f'Loop was now {"enabled" if playlist.loop else "disabled"}!!')
-    @commands.slash_command(name="loop", description="Loop queued Music.")
-    async def loop_sl(self, ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
-        await self.loop(ctx, tf)
+        await ctx.respond(f'Loop was now {"enabled" if playlist.loop else "disabled"}!!')
     #shuffle
-    @commands.command(name="shuffle", aliases=["sh"], description="Shuffle playing.")
-    async def shuffle(self, ctx, tf:bool=None):
+    @bridge.bridge_command(name="shuffle", aliases=["sh"], description="Shuffle playing.")
+    async def shuffle(self, ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         playlist=self.data.getGuildData(_getGuildId(ctx)).getPlaylist()
         if tf is None:
             playlist.shuffle=not playlist.shuffle
         else:
             playlist.shuffle=tf
-        await Send(ctx, f'Shuffle was now {"enabled" if playlist.shuffle else "disabled"}!!')
-    @commands.slash_command(name="shuffle", description="Shuffle playing.")
-    async def shuffle_sl(self, ctx, tf:Option(bool, "ON, OFF", required=False, default=None)):
-        await self.shuffle(ctx, tf)
+        await ctx.respond(f'Shuffle was now {"enabled" if playlist.shuffle else "disabled"}!!')
     #disconnect
-    @commands.command(name="disconnect", aliases=["dc"], description="Disconnect from VC")
+    @bridge.bridge_command(name="disconnect", aliases=["dc"], description="Disconnect from VC")
     async def dc(self, ctx):
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
-            await Send(ctx, 'Music is not enabled.')
+            await ctx.respond('Music is not enabled.')
             return
         if not ctx.guild.voice_client is None:
             playlist=self.data.getGuildData(_getGuildId(ctx)).getPlaylist()
             playlist.stop()
-            #playlist.cleanup()
             await ctx.guild.voice_client.disconnect()
-            await Send(ctx, content=f'Disconnect from VC')
-    @commands.slash_command(name="disconnect", description="Disconnect from VC")
-    async def dc_sl(self, ctx):
-        await self.dc(ctx)
+            await ctx.respond('Disconnect from VC')
     #move_to
-    @commands.command(name="move2", aliases=["mvt"], description="Move to Another VC")
-    async def mvt(self, ctx, channel:discord.VoiceChannel):
+    @bridge.bridge_command(name="move2", aliases=["mvt"], description="Move to Another VC")
+    async def mvt(self, ctx, channel:Option(discord.VoiceChannel, "VC", required=True)):
         playlist = self.data.getGuildData(_getGuildId(ctx)).getPlaylist()
         playlist.move2=True
         await ctx.author.move_to(channel)
         await ctx.guild.voice_client.move_to(channel)
-        await Send(ctx, "Moved....")
-    @commands.slash_command(name="move2", description="Move to Another VC")
-    async def mvt_sl(self, ctx, channel:Option(discord.VoiceChannel, "VC", required=True)):
-        await self.mvt(ctx, channel)
+        await ctx.respond("Moved....")
 
 def setup(bot):
     return bot.add_cog(Music(bot))
