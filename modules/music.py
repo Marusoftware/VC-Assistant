@@ -431,6 +431,11 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                 await Send(ctx, "Wasn't connected to VC. But you connected VC, So I connect there.")
         if service == "detect":
             service=self.service_detection(query)
+        query=query.split(":")
+        if len(query)==1:
+            query=query[0]
+        else:
+            query=" ".join(query[1:])
         if service in ["youtube","nico"]:
             msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
             status=await self.play_music(query, ctx.guild.voice_client, ctx.author, service)
@@ -471,14 +476,14 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                 msg = await Send(ctx, content="Wrong Attachment.(just one attachment is required.)", mention_author=True)
         else:
             msg=await Send(ctx, "Searching...")
-            urllist=await self.search_music(ctx, query, service)
+            urllist=await self.search_music(ctx, query, (service.replace("-select", "") if service.endswith("select") else service))
             if urllist:
                 if self.data.getGuildData(_getGuildId(ctx)).getProperty("alwaysSelect") == "enable" or service.endswith("select"):
                     view=View(timeout=None)
                     view.add_item(MusicSelction(custom_id="test", urllist=urllist, parent=self))
                     await msg.edit("Select Music to Play.",view=view)
                 else:
-                    msg = await Send(ctx, content='Prepareing playing...', mention_author=True)
+                    await msg.edit('Prepareing playing...')
                     status=await self.play_music(urllist[0].value, ctx.guild.voice_client, ctx.author, stream=False, stream_ex=False)
                     await self.status2msg(status, msg=msg)
             else:
