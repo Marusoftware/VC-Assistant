@@ -317,7 +317,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             self.playlist[list(self.playlist.keys())[0]]["path"]=path
             self.channel.play(discord.FFmpegPCMAudio(path, options="-vn -af loudnorm -fflags +discardcorrupt"), after=self.next)
     #service_detector
-    def service_detection(self, url):
+    def service_detection(self, url:str):
         if re.match("https?://(\S+\.)?youtube\.com/watch\?v=(\S)+",url):
             return "youtube"
         elif re.match("https?://(\S+\.)?nicovideo\.jp/watch/(\S)+",url):
@@ -326,16 +326,22 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             return "playlist-youtube"
         elif re.match("https?://open.spotify.com/track/(\S)+",url):
             return "spotify"
-        elif re.match("nico:(\S)+", url):
+        elif url.startswith("nico:"):
             return "search-nico"
-        elif re.match("spot:(\S)+", url):
+        elif url.startswith("snico:"):
+            return "search-nico-select"
+        elif url.startswith("spot:"):
             return "search-spotify"
-        elif re.match("all:(\S)+", url):
+        elif url.startswith("sspot:"):
+            return "search-spotify-select"
+        elif url.startswith("all:"):
             return "playlist-youtube-all"
-        elif re.match("save:(\S)+", url):
+        elif url.startswith("save:"):
             return "save"
-        elif re.match("savel:(\S)+", url):
+        elif url.startswith("savel:"):
             return "save-select"
+        elif url.startswith("select:"):
+            return "search-youtube-select"
         elif "file" in url:
             return "file"
         else:
@@ -410,7 +416,7 @@ class Music(commands.Cog, name="music", description="Music playback and record."
         await channel.send(f"Finished! Recorded audio for {', '.join(recorded_users)}.", files=files)
     #play
     @commands.command(name="play", aliases=["p"], description="Play in VC")
-    async def play(self, ctx, *query):
+    async def play(self, ctx, *query, service="detect"):
         if type(query) != str:
             query=" ".join(query)
         if not self.data.getGuildData(_getGuildId(ctx)).getProperty("enMusic"):
@@ -423,7 +429,8 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             else:
                 await self.connect(ctx.author.voice.channel)
                 await Send(ctx, "Wasn't connected to VC. But you connected VC, So I connect there.")
-        service=self.service_detection(query)
+        if service == "detect":
+            service=self.service_detection(query)
         if service in ["youtube","nico"]:
             msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
             status=await self.play_music(query, ctx.guild.voice_client, ctx.author, service)
@@ -466,14 +473,19 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             msg=await Send(ctx, "Searching...")
             urllist=await self.search_music(ctx, query, service)
             if urllist:
-                view=View(timeout=None)
-                view.add_item(MusicSelction(custom_id="test", urllist=urllist, parent=self))
-                await msg.edit("Select Music to Play.",view=view)
+                if self.data.getGuildData(_getGuildId(ctx)).getProperty("alwaysSelect") == "enable" or service.endswith("select"):
+                    view=View(timeout=None)
+                    view.add_item(MusicSelction(custom_id="test", urllist=urllist, parent=self))
+                    await msg.edit("Select Music to Play.",view=view)
+                else:
+                    msg = await Send(ctx, content='Prepareing playing...', mention_author=True)
+                    status=await self.play_music(urllist[0].value, ctx.guild.voice_client, ctx.author, stream=False, stream_ex=False)
+                    await self.status2msg(status, msg=msg)
             else:
                 await msg.edit("Error in Searching Music.")
     @commands.slash_command(name="play", description="Play music on VC")
     async def play_sl(self, ctx, query:Option(str, "Search text or url", required=True), service:Option(str, "Service", required=False, choices=["youtube","nico","playlist-youtube","search-youtube","search-nico","playlist-youtube-all","save","savel"], default="detect")):
-        await self.play(ctx, query)
+        await self.play(ctx, query, service=service)
     #skip
     @bridge.bridge_command(name="skip", aliases=["s"], description="Skip Music")
     async def skip(self, ctx):

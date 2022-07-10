@@ -34,7 +34,7 @@ class GuildData():
         self.data_path=os.path.join(self.data_dir,str(guild_id)+".guild")
         self.default_data = {"prefix":"!", "matcher_dict":{}, "enMatcher":False, "enMusic":True,
                              "keyYoutube":"none", "TTSChannels":[], "enTTS":False, "playlists":{},
-                             "perms":{}}
+                             "perms":{}, "alwaysSelect":"disable"}
         if db_url:
             self.conn = psycopg2.connect(db_url)
             cursor=self.conn.cursor()
