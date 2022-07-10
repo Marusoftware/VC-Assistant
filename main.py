@@ -12,10 +12,13 @@ argparser.add_argument("token", action="store", type=str, help="discord bot toke
 argparser.add_argument("-path", action="store", type=str, dest="path", required=False ,help="data path", default="")
 argparser.add_argument("-spot", action="store", type=str, dest="spot", required=False ,help="Spotify Client ID", default="")
 argparser.add_argument("-spot_secret", action="store", type=str, dest="spotse", required=False ,help="Spotify Client Secret", default="")
+argparser.add_argument("-logfile", action="store", type=str, dest="logfile", required=False ,help="Log file path", default=None)
 ##argparser.add_argument("--daemon", dest="daemon", help="Start in daemon mode.", action="store_true")
 argv=argparser.parse_args()
 #setting logging
-logging.basicConfig(level=argv.log_level)
+logger_options={}
+if argv.logfile is not None: logger_options["filename"]=argv.logfile
+logging.basicConfig(level=argv.log_level, **logger_options)
 logger = logging.getLogger("Main")
 #intents
 intents=Intents.default()
