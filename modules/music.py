@@ -431,11 +431,6 @@ class Music(commands.Cog, name="music", description="Music playback and record."
                 await Send(ctx, "Wasn't connected to VC. But you connected VC, So I connect there.")
         if service == "detect":
             service=self.service_detection(query)
-        query=query.split(":")
-        if len(query)==1:
-            query=query[0]
-        else:
-            query=" ".join(query[1:])
         if service in ["youtube","nico"]:
             msg = await Send(ctx, content=f'Prepareing playing...', mention_author=True)
             status=await self.play_music(query, ctx.guild.voice_client, ctx.author, service)
@@ -475,6 +470,11 @@ class Music(commands.Cog, name="music", description="Music playback and record."
             else:
                 msg = await Send(ctx, content="Wrong Attachment.(just one attachment is required.)", mention_author=True)
         else:
+            query=query.split(":")
+            if len(query)==1:
+                query=query[0]
+            else:
+                query=" ".join(query[1:])
             msg=await Send(ctx, "Searching...")
             urllist=await self.search_music(ctx, query, (service.replace("-select", "") if service.endswith("select") else service))
             if urllist:
