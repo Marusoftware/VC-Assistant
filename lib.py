@@ -30,5 +30,5 @@ async def Send(ctx, content="", view=None, ephemeral=False, embed=None, mention_
     else:
         msg=await ctx.send(content=content, mention_author=mention_author, **options)
     if not hasattr(msg, "edit"):
-        msg=msg.original_message()
+        msg=await msg.original_message()
     return msg
