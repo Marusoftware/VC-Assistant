@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "vc assistant"
+version = "0.1.0"
+description = "The discord bot, Assist you on VC."
+authors = ["Maruo.S <raspi-maru2004@outlook.jp>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+py-cord = {version = "2.2.0", extras = ["speed", "voice"]}
+pytube = "^12.1.0"
+discord-ext-music = "^0.3.0"
+av = "^10.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
